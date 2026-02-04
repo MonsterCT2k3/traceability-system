@@ -1,4 +1,4 @@
-package vn.edu.kma.identity_service.dto.response;
+package vn.edu.kma.common.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;

@@ -1,4 +1,4 @@
-package vn.edu.kma.identity_service.exception;
+package vn.edu.kma.common.exception;
 
 import lombok.Getter;
 

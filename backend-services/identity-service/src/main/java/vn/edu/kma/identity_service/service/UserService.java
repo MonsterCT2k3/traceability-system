@@ -6,10 +6,10 @@ import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import vn.edu.kma.common.exception.AppException;
+import vn.edu.kma.common.exception.ErrorCode;
 import vn.edu.kma.identity_service.dto.response.UserResponse;
 import vn.edu.kma.identity_service.entity.User;
-import vn.edu.kma.identity_service.exception.AppException;
-import vn.edu.kma.identity_service.exception.ErrorCode;
 import vn.edu.kma.identity_service.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 

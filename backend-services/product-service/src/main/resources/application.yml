@@ -1,0 +1,14 @@
+server:
+  port: 8082 # Port riêng cho Product Service
+
+spring:
+  application:
+    name: product-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/product_db
+    username: admin
+    password: password123 # Thay b?ng pass c?a b?n
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
