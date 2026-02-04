@@ -59,3 +59,17 @@ infrastructure/data/    # Không đẩy dữ liệu Database lên Git
 *.dll
 *.so
 *.dylib
+
+# Chặn dữ liệu thực tế của Database (tránh nặng Git và lộ dữ liệu)
+infrastructure/data/
+
+# Chặn các file môi trường chứa mật khẩu/Secret keys
+**/.env
+**/.env.local
+
+# Chặn các file chứng chỉ, khóa bí mật của Blockchain (Cực kỳ quan trọng)
+# Nếu sau này bạn sinh khóa trong thư mục blockchain-network
+blockchain-network/organizations/peerOrganizations/**/msp/keystore/
+blockchain-network/organizations/ordererOrganizations/**/msp/keystore/
+**/private_key.pem
+**/*.key

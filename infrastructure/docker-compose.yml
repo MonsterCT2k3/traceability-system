@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Database chính cho hệ thống
+  postgres-db:
+    image: postgres:15
+    container_name: traceability-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: identity_db # DB đầu tiên cho Identity Service
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  # Công cụ quản lý DB trực quan qua trình duyệt
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: traceability-pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@kma.edu.vn
+      PGADMIN_DEFAULT_PASSWORD: admin
+
+  # Bộ nhớ đệm cho hiệu năng cao
+  redis-cache:
+    image: redis:7-alpine
+    container_name: traceability-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
