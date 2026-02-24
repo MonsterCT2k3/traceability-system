@@ -4,13 +4,16 @@ server:
 app:
   jwt:
     signer-key: ${JWT_SIGNER_KEY:YourSuperSecretKeyForJWTThatIsLongEnoughToBeSecure}
+  services:
+    identity:
+      url: http://localhost:8081/api/v1/auth/introspect
 
 spring:
   application:
     name: api-gateway
   cloud:
     gateway:
-      # Thay ??i mvc thành server.webmvc
+      # Thay ??i mvc thï¿½nh server.webmvc
       server:
         webmvc:
           routes:

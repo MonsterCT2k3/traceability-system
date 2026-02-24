@@ -1,5 +1,5 @@
 server:
-  port: 8082 # Port riêng cho Product Service
+  port: 8082 # Port riï¿½ng cho Product Service
 
 spring:
   application:
@@ -8,6 +8,7 @@ spring:
     url: jdbc:postgresql://localhost:5433/product_db
     username: admin
     password: password123 # Thay b?ng pass c?a b?n
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
