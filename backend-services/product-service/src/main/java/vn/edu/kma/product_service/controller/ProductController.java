@@ -7,8 +7,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.kma.common.dto.response.ApiResponse;
+import vn.edu.kma.product_service.dto.request.ProductRequest;
 import vn.edu.kma.product_service.entity.Product;
 import vn.edu.kma.product_service.repository.ProductRepository;
+import vn.edu.kma.product_service.service.ProductService;
 
 import java.text.ParseException;
 import java.util.List;
@@ -18,39 +20,33 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ProductController {
-    private final ProductRepository productRepository;
-
+    private final ProductService productService;
     @GetMapping
     public ResponseEntity<ApiResponse<List<Product>>> getAllProducts() {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.<List<Product>>builder()
                 .code(200)
                 .message("Lấy danh sách sản phẩm thành công")
-                .result(productRepository.findAll())
+                .result(productService.getAllProducts())
                 .build()
         );
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<Product>> getProductById(@PathVariable String id) {
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.<Product>builder().
+                code(200)
+                .message("Lấy sản phẩm thành công")
+                .result(productService.getProductById(id))
+                .build()
+        );
+    }
     @PostMapping
-    public ResponseEntity<ApiResponse<Product>> createProduct(@RequestBody Product product,
+    public ResponseEntity<ApiResponse<Product>> createProduct(@RequestBody ProductRequest request,
                                                               @RequestHeader("Authorization") String tokenHeader) throws ParseException {
-        String ownerId = "unknown";
-        try{
-            // 2. Cắt bỏ chữ "Bearer " để lấy token thô
-            String token = tokenHeader.substring(7);
-
-            // 3. Parse Token để lấy thông tin (Subject/Username)
-            SignedJWT signedJWT = SignedJWT.parse(token);
-            ownerId = signedJWT.getJWTClaimsSet().getStringClaim("userId");
-
-            log.info("User {} is creating product {}", ownerId, product.getName());
-        }catch (Exception e){
-            log.error("Error while read token", e);
-        }
-        product.setOwnerId(ownerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.<Product>builder()
                 .code(201)
                 .message("Tạo sản phẩm thành công")
-                .result(productRepository.save(product))
+                .result(productService.createProduct(request, tokenHeader))
                 .build()
         );
     }
