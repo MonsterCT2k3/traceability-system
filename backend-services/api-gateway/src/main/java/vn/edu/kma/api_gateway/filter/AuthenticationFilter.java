@@ -40,7 +40,8 @@ public class AuthenticationFilter implements Filter {
         String path = httpRequest.getServletPath();
 
         // Loại biên các API Public (Login, Register, Introspect)
-        if (path.contains("/api/v1/auth/")) {
+        if (path.contains("/api/v1/auth/")
+        || isPublicGetRequest(httpRequest, path)) {
             chain.doFilter(request, response);
             return;
         }
@@ -77,6 +78,22 @@ public class AuthenticationFilter implements Filter {
 
         // Nếu không có header, không phải Bearer, hoặc check token thất bại -> Trả về 401
         sendUnauthenticatedResponse((HttpServletResponse) response, "Unauthenticated");
+    }
+
+    // Hàm kiểm tra API GET công khai
+    private boolean isPublicGetRequest(HttpServletRequest request, String path) {
+        if (!"GET".equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        // Cho phép xem thông tin sản phẩm (không cần đăng nhập)
+        if (path.matches("/api/v1/products/[^/]+")              // GET /api/v1/products/{id}
+                || path.matches("/api/v1/products/[^/]+/qr")    // GET /api/v1/products/{id}/qr
+                || path.contains("/api/v1/histories/product/")  // GET /api/v1/histories/product/{id}
+                || path.contains("/api/v1/blockchain/history/")) // GET /api/v1/blockchain/history/{id}
+        {
+            return true;
+        }
+        return false;
     }
 
     private void sendUnauthenticatedResponse(HttpServletResponse response, String message) throws IOException {

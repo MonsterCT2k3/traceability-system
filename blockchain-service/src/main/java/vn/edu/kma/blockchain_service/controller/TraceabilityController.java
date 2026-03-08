@@ -3,9 +3,11 @@ package vn.edu.kma.blockchain_service.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.kma.blockchain_service.dto.response.BlockchainHistoryResponse;
 import vn.edu.kma.blockchain_service.service.TraceabilityService;
 import vn.edu.kma.common.dto.response.ApiResponse; // Dùng lại ApiResponse của common-library
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -52,6 +54,24 @@ public class TraceabilityController {
             return ResponseEntity.internalServerError().body(ApiResponse.<String>builder()
                     .code(500)
                     .message("Lỗi Blockchain: " + e.getMessage())
+                    .build());
+        }
+    }
+
+    // API Đọc lịch sử từ Blockchain
+    @GetMapping("/history/{productId}")
+    public ResponseEntity<ApiResponse<List<BlockchainHistoryResponse>>> getHistory(@PathVariable String productId) {
+        try {
+            var histories = traceabilityService.getHistoryByProductId(productId);
+            return ResponseEntity.ok(ApiResponse.<List<BlockchainHistoryResponse>>builder()
+                    .code(200)
+                    .message("Lấy lịch sử từ Blockchain thành công")
+                    .result(histories)
+                    .build());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.<List<BlockchainHistoryResponse>>builder()
+                    .code(500)
+                    .message("Lỗi đọc Blockchain: " + e.getMessage())
                     .build());
         }
     }

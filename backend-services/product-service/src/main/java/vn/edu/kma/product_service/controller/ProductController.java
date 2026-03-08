@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.ProductRequest;
+import vn.edu.kma.product_service.dto.request.TransferRequest;
 import vn.edu.kma.product_service.entity.Product;
 import vn.edu.kma.product_service.repository.ProductRepository;
 import vn.edu.kma.product_service.service.ProductService;
@@ -72,5 +73,19 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @PostMapping("/{id}/transfer")
+    public ResponseEntity<ApiResponse<Product>> transferOwnership(
+            @PathVariable String id,
+            @RequestBody TransferRequest request,
+            @RequestHeader("Authorization") String token
+    ) {
+        return ResponseEntity.ok(ApiResponse.<Product>builder()
+                .code(200)
+                .message("Chuyển quyền sở hữu thành công")
+                .result(productService.transferOwnership(id, request, token))
+                .build()
+        );
     }
 }

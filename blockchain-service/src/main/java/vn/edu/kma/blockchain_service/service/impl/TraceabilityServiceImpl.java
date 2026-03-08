@@ -12,9 +12,12 @@ import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.tx.gas.StaticGasProvider;
 import vn.edu.kma.blockchain_service.contract.Traceability;
+import vn.edu.kma.blockchain_service.dto.response.BlockchainHistoryResponse;
 import vn.edu.kma.blockchain_service.service.TraceabilityService;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -74,6 +77,44 @@ public class TraceabilityServiceImpl implements TraceabilityService {
         log.info("Ghi thành công! TxHash: {}", receipt.getTransactionHash());
         return receipt.getTransactionHash();
 
+
+    }
+
+    @Override
+    public int getHistoryCount(String productId) throws Exception {
+        Credentials credentials = Credentials.create(privateKey);
+
+        Traceability contract = Traceability.load(
+                contractAddress, web3j, credentials, new DefaultGasProvider()
+        );
+        BigInteger count = contract.getHistoryCount(productId).send();
+        return count.intValue();
+    }
+
+    @Override
+    public List<BlockchainHistoryResponse> getHistoryByProductId(String productId) throws Exception {
+        Credentials credentials = Credentials.create(privateKey);
+
+        Traceability contract = Traceability.load(
+                contractAddress, web3j, credentials, new DefaultGasProvider()
+        );
+
+        int count = contract.getHistoryCount(productId).send().intValue();
+
+        List<BlockchainHistoryResponse> histories = new ArrayList<>();
+
+        for (int i = 0; i < count; i++) {
+            var record = contract.getHistory(productId, BigInteger.valueOf(i)).send();
+            histories.add(BlockchainHistoryResponse.builder()
+                    .productId(record.component1())
+                    .action(record.component2())
+                    .description(record.component3())
+                    .timestamp(record.component4().longValue())
+                    .actor(record.component5())
+                    .build()
+            );
+        }
+        return histories;
 
     }
 }

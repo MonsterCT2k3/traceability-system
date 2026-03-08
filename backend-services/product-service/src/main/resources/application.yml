@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: product-service
+  url:
+    blockchain-service: http://localhost:8083/api/v1/blockchain/history
   datasource:
     url: jdbc:postgresql://localhost:5433/product_db
     username: admin

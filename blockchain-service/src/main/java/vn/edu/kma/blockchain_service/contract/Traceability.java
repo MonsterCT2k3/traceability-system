@@ -24,6 +24,7 @@ import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.BaseEventResponse;
 import org.web3j.protocol.core.methods.response.Log;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tuples.generated.Tuple5;
 import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
@@ -76,6 +77,30 @@ public class Traceability extends Contract {
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.Utf8String(_productId)),
                 Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    public RemoteFunctionCall<Tuple5<String, String, String, BigInteger, String>> getHistory(String _productId, BigInteger _index) {
+        final Function function = new Function(FUNC_GETHISTORY,
+                Arrays.<Type>asList(
+                        new Utf8String(_productId),
+                        new Uint256(_index)),
+                Arrays.<TypeReference<?>>asList(
+                        new TypeReference<Utf8String>() {},
+                        new TypeReference<Utf8String>() {},
+                        new TypeReference<Utf8String>() {},
+                        new TypeReference<Uint256>() {},
+                        new TypeReference<Address>() {}));
+        return new RemoteFunctionCall<>(function,
+                () -> {
+                    List<Type> results = executeCallMultipleValueReturn(function);
+                    return new Tuple5<>(
+                            (String) results.get(0).getValue(),
+                            (String) results.get(1).getValue(),
+                            (String) results.get(2).getValue(),
+                            (BigInteger) results.get(3).getValue(),
+                            results.get(4).getValue().toString());
+                });
     }
 
     @Deprecated
