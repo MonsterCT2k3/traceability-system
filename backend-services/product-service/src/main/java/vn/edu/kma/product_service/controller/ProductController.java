@@ -1,6 +1,5 @@
 package vn.edu.kma.product_service.controller;
 
-import com.nimbusds.jwt.SignedJWT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -9,9 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.ProductRequest;
-import vn.edu.kma.product_service.dto.request.TransferRequest;
 import vn.edu.kma.product_service.entity.Product;
-import vn.edu.kma.product_service.repository.ProductRepository;
 import vn.edu.kma.product_service.service.ProductService;
 import vn.edu.kma.product_service.utils.QRCodeGenerator;
 
@@ -28,7 +25,7 @@ public class ProductController {
     public ResponseEntity<ApiResponse<List<Product>>> getAllProducts() {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.<List<Product>>builder()
                 .code(200)
-                .message("Lấy danh sách sản phẩm thành công")
+                .message("Lấy danh sách mặt hàng (catalog) thành công")
                 .result(productService.getAllProducts())
                 .build()
         );
@@ -38,7 +35,7 @@ public class ProductController {
     public ResponseEntity<ApiResponse<Product>> getProductById(@PathVariable String id) {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.<Product>builder().
                 code(200)
-                .message("Lấy sản phẩm thành công")
+                .message("Lấy thông tin mặt hàng (catalog) thành công")
                 .result(productService.getProductById(id))
                 .build()
         );
@@ -48,7 +45,7 @@ public class ProductController {
                                                               @RequestHeader("Authorization") String tokenHeader) throws ParseException {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.<Product>builder()
                 .code(201)
-                .message("Tạo sản phẩm thành công")
+                .message("Tạo mặt hàng (catalog) thành công")
                 .result(productService.createProduct(request, tokenHeader))
                 .build()
         );
@@ -75,17 +72,4 @@ public class ProductController {
         }
     }
 
-    @PostMapping("/{id}/transfer")
-    public ResponseEntity<ApiResponse<Product>> transferOwnership(
-            @PathVariable String id,
-            @RequestBody TransferRequest request,
-            @RequestHeader("Authorization") String token
-    ) {
-        return ResponseEntity.ok(ApiResponse.<Product>builder()
-                .code(200)
-                .message("Chuyển quyền sở hữu thành công")
-                .result(productService.transferOwnership(id, request, token))
-                .build()
-        );
-    }
 }

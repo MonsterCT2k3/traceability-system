@@ -4,9 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jwt.SignedJWT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +14,6 @@ import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.common.dto.response.IntrospectResponse;
 
 import java.io.IOException;
-import java.util.Date;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -80,17 +76,20 @@ public class AuthenticationFilter implements Filter {
         sendUnauthenticatedResponse((HttpServletResponse) response, "Unauthenticated");
     }
 
-    // Hàm kiểm tra API GET công khai
+    /**
+     * GET công khai (truy xuất / QR / đọc chain).
+     * Lưu ý: transfer endpoints mới nằm ở /api/v1/transfers/* là private, luôn cần token.
+     */
     private boolean isPublicGetRequest(HttpServletRequest request, String path) {
         if (!"GET".equalsIgnoreCase(request.getMethod())) {
             return false;
         }
-        // Cho phép xem thông tin sản phẩm (không cần đăng nhập)
-        if (path.matches("/api/v1/products/[^/]+")              // GET /api/v1/products/{id}
-                || path.matches("/api/v1/products/[^/]+/qr")    // GET /api/v1/products/{id}/qr
-                || path.contains("/api/v1/histories/product/")  // GET /api/v1/histories/product/{id}
-                || path.contains("/api/v1/blockchain/history/")) // GET /api/v1/blockchain/history/{id}
-        {
+        if (path.matches(".*/api/v1/products/[^/]+$")
+                || path.matches(".*/api/v1/products/[^/]+/qr$")
+                || path.contains("/api/v1/histories/product/")
+                // Đọc batch/pallet trên chain (batchIdHex trong path)
+                || path.matches(".*/api/v1/blockchain/batch/[^/]+(/exists)?$")
+                || path.matches(".*/api/v1/blockchain/transformed-batch/[^/]+(/exists)?$")) {
             return true;
         }
         return false;

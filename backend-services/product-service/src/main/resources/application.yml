@@ -4,8 +4,9 @@ server:
 spring:
   application:
     name: product-service
+  # Base URL blockchain-service (KHÔNG thêm / ở cuối). Nối thêm path: /ownership-change, /transformed-batch, ...
   url:
-    blockchain-service: http://localhost:8083/api/v1/blockchain/history
+    blockchain-service: http://localhost:8083/api/v1/blockchain
   datasource:
     url: jdbc:postgresql://localhost:5433/product_db
     username: admin

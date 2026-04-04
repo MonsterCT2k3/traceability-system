@@ -21,7 +21,10 @@ public class Product {
     private String name;
     private String description;
     private Double price;
-    private int quantity;
     private String imageUrl;
+
+    /**
+     * Chủ sở hữu danh mục/SKU (công ty đứng tên sản phẩm), không phải owner vận hành của từng lô/thùng/unit.
+     */
     private String ownerId;
 }
