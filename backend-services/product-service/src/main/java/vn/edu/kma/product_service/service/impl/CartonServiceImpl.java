@@ -23,9 +23,6 @@ public class CartonServiceImpl implements CartonService {
     public Carton createCarton(String palletId, CartonCreateRequest request, String tokenHeader) {
         try {
             String userId = extractUserIdFromToken(tokenHeader);
-            if (request.getCartonCode() == null || request.getCartonCode().isBlank()) {
-                throw new RuntimeException("cartonCode là bắt buộc");
-            }
             if (request.getPlannedUnitCount() == null || request.getPlannedUnitCount() <= 0) {
                 throw new RuntimeException("plannedUnitCount phải là số dương");
             }
@@ -36,7 +33,7 @@ public class CartonServiceImpl implements CartonService {
                 throw new RuntimeException("Chỉ owner hiện tại của pallet mới được tạo carton");
             }
 
-            String code = request.getCartonCode().trim();
+            String code = resolveCartonCode(trimToNull(request.getCartonCode()), pallet);
             cartonRepository.findByCartonCode(code).ifPresent(c -> {
                 throw new RuntimeException("cartonCode đã tồn tại");
             });
@@ -57,6 +54,28 @@ public class CartonServiceImpl implements CartonService {
             log.error("createCarton failed", e);
             throw new RuntimeException("Lỗi tạo carton: " + e.getMessage());
         }
+    }
+
+    /**
+     * Tự sinh: CTN-{palletCode}-{seq 4 số}, seq tăng theo số carton hiện có của pallet (có retry trùng).
+     */
+    private String resolveCartonCode(String userProvided, Pallet pallet) {
+        if (userProvided != null) {
+            return userProvided;
+        }
+        String pc = pallet.getPalletCode().trim();
+        long baseSeq = cartonRepository.countByPalletId(pallet.getId()) + 1;
+        for (int offset = 0; offset < 10_000; offset++) {
+            long seq = baseSeq + offset;
+            if (seq > 9999L) {
+                throw new RuntimeException("Đã vượt quá 9999 carton trên một pallet");
+            }
+            String candidate = String.format("CTN-%s-%04d", pc, seq);
+            if (cartonRepository.findByCartonCode(candidate).isEmpty()) {
+                return candidate;
+            }
+        }
+        throw new RuntimeException("Không sinh được cartonCode duy nhất, thử lại");
     }
 
     private static String trimToNull(String s) {

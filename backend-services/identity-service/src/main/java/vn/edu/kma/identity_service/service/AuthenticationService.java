@@ -89,7 +89,8 @@ public class AuthenticationService {
         user.setRole("USER");
         User savedUser = userRepository.save(user);
 
-        // Chuyển đổi từ Entity sang Response DTO (Có thể dùng MapStruct để làm tự động sau này)
+        // Chuyển đổi từ Entity sang Response DTO (Có thể dùng MapStruct để làm tự động
+        // sau này)
         return UserResponse.builder()
                 .id(savedUser.getId())
                 .username(savedUser.getUsername())
@@ -107,7 +108,8 @@ public class AuthenticationService {
                     .parseClaimsJws(request.getRefreshToken())
                     .getBody();
 
-            // 2. Kiểm tra xem Token này có bị nằm trong danh sách đen (Logout/Đã dùng) không
+            // 2. Kiểm tra xem Token này có bị nằm trong danh sách đen (Logout/Đã dùng)
+            // không
             String jti = claims.getId();
             if (invalidatedTokenRepository.existsById(jti)) {
                 throw new RuntimeException("Token đã hết hiệu lực hoặc đã được sử dụng!");
@@ -141,7 +143,8 @@ public class AuthenticationService {
 
     public void logout(LogoutRequest request) throws ParseException, JOSEException {
         try {
-            // 1. Giải mã Token để lấy thông tin (Sử dụng thư viện Nimbus như đã làm ở Gateway)
+            // 1. Giải mã Token để lấy thông tin (Sử dụng thư viện Nimbus như đã làm ở
+            // Gateway)
             SignedJWT signedJWT = SignedJWT.parse(request.getToken());
 
             String jti = signedJWT.getJWTClaimsSet().getJWTID();

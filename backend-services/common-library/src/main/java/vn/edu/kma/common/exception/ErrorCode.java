@@ -9,8 +9,7 @@ public enum ErrorCode {
     USER_EXISTED(409, "Người dùng đã tồn tại", HttpStatus.CONFLICT),
     USER_NOT_FOUND(404, "Không tìm thấy người dùng", HttpStatus.NOT_FOUND),
     UNAUTHENTICATED(401, "Tài khoản hoặc mật khẩu không chính xác", HttpStatus.UNAUTHORIZED),
-    INVALID_KEY(400, "Mã lỗi không hợp lệ", HttpStatus.BAD_REQUEST)
-    ;
+    INVALID_KEY(400, "Mã lỗi không hợp lệ", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

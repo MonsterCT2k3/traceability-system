@@ -11,4 +11,6 @@ public interface CartonRepository extends JpaRepository<Carton, String> {
     Optional<Carton> findByCartonCode(String cartonCode);
 
     List<Carton> findByPalletIdOrderByCreatedAtDesc(String palletId);
+
+    long countByPalletId(String palletId);
 }

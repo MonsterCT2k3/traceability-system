@@ -38,14 +38,14 @@ public class ProductUnit {
     private String ownerId;
 
     /**
-     * keccak256/SHA-256 hex (64 ký tự, không prefix 0x) của secret scratch-off.
+     * SHA-256 hex (64 ký tự, không prefix 0x) của secret scratch-off (UTF-8).
      * Null nếu chưa sinh secret.
      */
     @Column(length = 64, unique = true)
     private String secretHash;
 
     /**
-     * Số lần quét QR truy xuất công khai.
+     * Số lần quét / xác thực qua mã bí mật (scratch): mỗi lần gọi secret-scan đúng secret +1.
      */
     @Column(nullable = false)
     @Builder.Default

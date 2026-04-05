@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.ProductRequest;
+import vn.edu.kma.product_service.config.TraceFrontendConfig;
 import vn.edu.kma.product_service.entity.Product;
 import vn.edu.kma.product_service.service.ProductService;
 import vn.edu.kma.product_service.utils.QRCodeGenerator;
@@ -21,6 +22,7 @@ import java.util.List;
 @Slf4j
 public class ProductController {
     private final ProductService productService;
+    private final TraceFrontendConfig traceFrontendConfig;
     @GetMapping
     public ResponseEntity<ApiResponse<List<Product>>> getAllProducts() {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.<List<Product>>builder()
@@ -58,10 +60,7 @@ public class ProductController {
             // Kiểm tra sản phẩm có tồn tại không (Optional - Tốt nhất nên có)
             // productService.getProductById(id);
 
-            // URL mà người dùng sẽ truy cập khi quét mã
-            // Ví dụ: https://traceability.vn/view?id=...
-            // Hiện tại mình chưa có domain thật nên để localhost hoặc một đường dẫn giả định
-            String content = "http://localhost:3000/product/" + id;
+            String content = traceFrontendConfig.productCatalogLandingUrl(id);
 
             // Tạo ảnh QR kích thước 300x300
             byte[] qrImage = QRCodeGenerator.generateQRCodeImage(content, 300, 300);

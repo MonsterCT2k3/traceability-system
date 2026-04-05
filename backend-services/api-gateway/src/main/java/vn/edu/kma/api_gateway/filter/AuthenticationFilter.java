@@ -37,7 +37,8 @@ public class AuthenticationFilter implements Filter {
 
         // Loại biên các API Public (Login, Register, Introspect)
         if (path.contains("/api/v1/auth/")
-        || isPublicGetRequest(httpRequest, path)) {
+        || isPublicGetRequest(httpRequest, path)
+        || isPublicPostRequest(httpRequest, path)) {
             chain.doFilter(request, response);
             return;
         }
@@ -86,6 +87,10 @@ public class AuthenticationFilter implements Filter {
         }
         if (path.matches(".*/api/v1/products/[^/]+$")
                 || path.matches(".*/api/v1/products/[^/]+/qr$")
+                // Truy xuất unit công khai (không lộ secret)
+                || path.matches(".*/api/v1/units/[^/]+/trace$")
+                || path.matches(".*/api/v1/units/[^/]+/qr$")
+                || path.matches(".*/api/v1/units/trace/by-serial$")
                 || path.contains("/api/v1/histories/product/")
                 // Đọc batch/pallet trên chain (batchIdHex trong path)
                 || path.matches(".*/api/v1/blockchain/batch/[^/]+(/exists)?$")
@@ -93,6 +98,14 @@ public class AuthenticationFilter implements Filter {
             return true;
         }
         return false;
+    }
+
+    /** POST công khai (ghi nhận quét mã bí mật, không JWT). */
+    private boolean isPublicPostRequest(HttpServletRequest request, String path) {
+        if (!"POST".equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        return path.matches(".*/api/v1/units/[^/]+/secret-scan$");
     }
 
     private void sendUnauthenticatedResponse(HttpServletResponse response, String message) throws IOException {

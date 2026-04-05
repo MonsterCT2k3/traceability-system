@@ -18,8 +18,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Quan trọng: Nếu không disable, mọi POST sẽ bị 403
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll() // Kiểm tra dấu gạch chéo
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 // Thêm dòng này để xử lý lỗi 403 rõ ràng hơn trong Console
                 .exceptionHandling(ex -> ex.accessDeniedHandler((request, response, accessDeniedException) -> {
                     System.out.println("Lỗi 403 tại: " + request.getRequestURI());

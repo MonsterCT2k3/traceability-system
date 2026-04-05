@@ -1,6 +1,11 @@
 server:
   port: 8082 # Port ri�ng cho Product Service
 
+# Base URL cho QR catalog sản phẩm (link web). QR unit truy xuất chỉ chứa UUID, không dùng cấu hình này.
+app:
+  trace:
+    frontend-base-url: http://localhost:3000
+
 spring:
   application:
     name: product-service
