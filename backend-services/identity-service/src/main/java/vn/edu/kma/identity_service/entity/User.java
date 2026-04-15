@@ -20,5 +20,13 @@ public class User {
 
     private String password;
     private String fullName;
+    private String email;
+    private String phone;
+    private String avatarUrl;
     private String role;
+    
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    
+    private String location;
 }

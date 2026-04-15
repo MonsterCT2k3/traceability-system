@@ -1,16 +1,33 @@
 server:
   port: 8080
 
+# JWT: phải cùng giá trị với identity-service jwt.signerKey (identity ký token; gateway không verify local).
 app:
   jwt:
     signer-key: ${JWT_SIGNER_KEY:YourSuperSecretKeyForJWTThatIsLongEnoughToBeSecure}
   services:
     identity:
-      url: http://localhost:8081/api/v1/auth/introspect
+      introspect-url: ${IDENTITY_INTROSPECT_URL:http://localhost:8081/api/v1/auth/introspect}
+  cors:
+    allowed-origin-patterns:
+      - http://localhost:*
+      - http://127.0.0.1:*
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - "*"
 
 spring:
   application:
     name: api-gateway
+  # Gateway buffer body khi proxy; mặc định nhỏ có thể lỗi khi upload ảnh lớn qua /identity/**
+  codec:
+    max-in-memory-size: 10MB
   cloud:
     gateway:
       # Thay ??i mvc th�nh server.webmvc
@@ -38,3 +55,13 @@ spring:
                 - Path=/blockchain/**
               filters:
                 - StripPrefix=1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

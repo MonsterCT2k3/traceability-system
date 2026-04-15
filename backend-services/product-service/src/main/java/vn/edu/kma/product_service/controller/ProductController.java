@@ -4,7 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import vn.edu.kma.product_service.config.OpenApiConfig;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.ProductRequest;
@@ -43,6 +46,8 @@ public class ProductController {
         );
     }
     @PostMapping
+    @PreAuthorize("hasAnyRole('MANUFACTURER','ADMIN')")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
     public ResponseEntity<ApiResponse<Product>> createProduct(@RequestBody ProductRequest request,
                                                               @RequestHeader("Authorization") String tokenHeader) throws ParseException {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.<Product>builder()

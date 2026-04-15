@@ -11,6 +11,8 @@ import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import vn.edu.kma.common.dto.request.AuthenticationRequest;
 import vn.edu.kma.common.dto.request.IntrospectRequest;
@@ -26,9 +28,12 @@ import vn.edu.kma.identity_service.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import vn.edu.kma.identity_service.repository.InvalidatedTokenRepository;
 import vn.edu.kma.common.dto.request.LogoutRequest;
+import vn.edu.kma.common.security.UserRole;
 
 import java.text.ParseException;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -52,16 +57,8 @@ public class AuthenticationService {
             throw new RuntimeException("Tài khoản hoặc mật khẩu không chính xác!");
         }
 
-        // 3. Tạo Access Token (Thời gian ngắn - ví dụ 1 giờ)
-        String accessToken = Jwts.builder()
-                .setId(UUID.randomUUID().toString()) // JTI: ID duy nhất của Token
-                .setSubject(user.getUsername())
-                .claim("userId", user.getId())
-                .claim("role", user.getRole())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 giờ
-                .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()), SignatureAlgorithm.HS256)
-                .compact();
+        // 3. Tạo Access Token (cùng claim với refresh)
+        String accessToken = buildAccessToken(user);
 
         // 4. Tạo Refresh Token (Thời gian dài - ví dụ 7 ngày)
         String refreshToken = Jwts.builder()
@@ -85,8 +82,9 @@ public class AuthenticationService {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
+        user.setRole(null);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole("USER");
+        user.setRole(UserRole.USER.name());
         User savedUser = userRepository.save(user);
 
         // Chuyển đổi từ Entity sang Response DTO (Có thể dùng MapStruct để làm tự động
@@ -95,7 +93,11 @@ public class AuthenticationService {
                 .id(savedUser.getId())
                 .username(savedUser.getUsername())
                 .fullName(savedUser.getFullName())
+                .email(savedUser.getEmail())
+                .phone(savedUser.getPhone())
+                .avatarUrl(savedUser.getAvatarUrl())
                 .role(savedUser.getRole())
+                .location(savedUser.getLocation())
                 .build();
     }
 
@@ -120,15 +122,8 @@ public class AuthenticationService {
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
 
-            // 4. Cấp Access Token mới (Thời gian ngắn)
-            String newAccessToken = Jwts.builder()
-                    .setId(UUID.randomUUID().toString())
-                    .setSubject(user.getUsername())
-                    .claim("role", user.getRole())
-                    .setIssuedAt(new Date())
-                    .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 giờ
-                    .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()), SignatureAlgorithm.HS256)
-                    .compact();
+            // 4. Cấp Access Token mới (cùng claim với login)
+            String newAccessToken = buildAccessToken(user);
 
             // 5. Trả về Response (Giữ nguyên Refresh Token cũ hoặc cấp mới - Rotation)
             return AuthenticationResponse.builder()
@@ -194,6 +189,45 @@ public class AuthenticationService {
         return IntrospectResponse.builder()
                 .valid(isValid)
                 .build();
+    }
+
+    /**
+     * Access token hợp lệ (chữ ký, hạn, không trong blacklist) → Authentication cho Spring Security.
+     */
+    public Optional<UsernamePasswordAuthenticationToken> authenticateAccessToken(String token) {
+        try {
+            verifyToken(token);
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            String jti = signedJWT.getJWTClaimsSet().getJWTID();
+            if (invalidatedTokenRepository.existsById(jti)) {
+                return Optional.empty();
+            }
+            String username = signedJWT.getJWTClaimsSet().getSubject();
+            String roleClaim = (String) signedJWT.getJWTClaimsSet().getClaim("role");
+            UserRole role = UserRole.fromClaimOrDefault(roleClaim);
+            var authority = new SimpleGrantedAuthority(role.springAuthority());
+            return Optional.of(new UsernamePasswordAuthenticationToken(
+                    username,
+                    null,
+                    Collections.singletonList(authority)
+            ));
+        } catch (Exception e) {
+            log.debug("authenticateAccessToken failed: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private String buildAccessToken(User user) {
+        String roleInToken = user.getRole() != null ? user.getRole() : UserRole.USER.name();
+        return Jwts.builder()
+                .setId(UUID.randomUUID().toString())
+                .setSubject(user.getUsername())
+                .claim("userId", user.getId())
+                .claim("role", roleInToken)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 3600000))
+                .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()), SignatureAlgorithm.HS256)
+                .compact();
     }
 
     // Hàm hỗ trợ verify chữ ký (Nên tách riêng để dùng lại cho Logout/Refresh)

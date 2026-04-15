@@ -6,6 +6,15 @@ app:
   trace:
     frontend-base-url: http://localhost:3000
 
+# Cùng secret với identity-service (ký JWT). Biến môi trường JWT_SIGNER_KEY.
+jwt:
+  signerKey: ${JWT_SIGNER_KEY:YourSuperSecretKeyForJWTThatIsLongEnoughToBeSecure}
+
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: method
+
 spring:
   application:
     name: product-service
@@ -13,7 +22,7 @@ spring:
   url:
     blockchain-service: http://localhost:8083/api/v1/blockchain
   datasource:
-    url: jdbc:postgresql://localhost:5433/product_db
+    url: jdbc:postgresql://localhost:5433/product_db?serverTimezone=Asia/Ho_Chi_Minh&timezone=Asia/Ho_Chi_Minh
     username: admin
     password: password123 # Thay b?ng pass c?a b?n
     driver-class-name: org.postgresql.Driver
@@ -21,3 +30,13 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

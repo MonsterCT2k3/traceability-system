@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Database chính cho hệ thống
   postgres-db:
@@ -12,7 +10,13 @@ services:
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: identity_db # DB đầu tiên cho Identity Service
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d identity_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # Công cụ quản lý DB trực quan qua trình duyệt
   pgadmin:
@@ -23,6 +27,9 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@kma.edu.vn
       PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      postgres-db:
+        condition: service_healthy
 
   # Bộ nhớ đệm cho hiệu năng cao
   redis-cache:

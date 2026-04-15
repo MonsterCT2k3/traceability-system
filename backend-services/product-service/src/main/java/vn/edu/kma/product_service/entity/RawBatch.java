@@ -66,6 +66,9 @@ public class RawBatch {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'NOT_SHIPPED'")
+    private String status; // NOT_SHIPPED, PENDING_SHIPMENT, SHIPPED
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
