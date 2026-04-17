@@ -17,6 +17,7 @@ import vn.edu.kma.product_service.dto.request.RawBatchMergeRequest;
 import vn.edu.kma.product_service.dto.response.RawBatchResponse;
 import vn.edu.kma.product_service.entity.RawBatch;
 import vn.edu.kma.product_service.repository.RawBatchRepository;
+import vn.edu.kma.product_service.service.MaterialCatalogService;
 import vn.edu.kma.product_service.service.RawBatchService;
 
 import java.math.BigDecimal;
@@ -43,19 +44,25 @@ public class RawBatchServiceImpl implements RawBatchService {
     private final RestTemplate restTemplate;
     private final RawBatchRepository rawBatchRepository;
     private final TransactionTemplate transactionTemplate;
+    private final MaterialCatalogService materialCatalogService;
 
     public RawBatchServiceImpl(RestTemplate restTemplate,
                                RawBatchRepository rawBatchRepository,
-                               PlatformTransactionManager transactionManager) {
+                               PlatformTransactionManager transactionManager,
+                               MaterialCatalogService materialCatalogService) {
         this.restTemplate = restTemplate;
         this.rawBatchRepository = rawBatchRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.materialCatalogService = materialCatalogService;
     }
 
     @Override
     public Map<String, String> createRawBatch(RawBatchCreateRequest request, String token) {
         try {
             String producerId = extractUserIdFromToken(token);
+            if (!materialCatalogService.isValidPair(request.getMaterialType(), request.getMaterialName())) {
+                throw new RuntimeException("Loại hoặc tên nguyên liệu không có trong danh mục hệ thống");
+            }
             String rawBatchCode = "RAW-" + generateShortCode();
             String batchIdHex = randomBytes32Hex();
 
@@ -340,26 +347,47 @@ public class RawBatchServiceImpl implements RawBatchService {
         try {
             String producerId = extractUserIdFromToken(token);
             List<RawBatch> batches = rawBatchRepository.findAllByOwnerIdOrderByCreatedAtDesc(producerId);
-            
-            return batches.stream().map(batch -> RawBatchResponse.builder()
-                    .id(batch.getId())
-                    .rawBatchCode(batch.getRawBatchCode())
-                    .materialType(batch.getMaterialType())
-                    .materialName(batch.getMaterialName())
-                    .harvestedAt(batch.getHarvestedAt())
-                    .quantity(batch.getQuantity())
-                    .unit(batch.getUnit())
-                    .location(batch.getLocation())
-                    .note(batch.getNote())
-                    .status(batch.getStatus())
-                    .batchIdHex(batch.getBatchIdHex())
-                    .anchorTxHash(batch.getAnchorTxHash())
-                    .createdAt(batch.getCreatedAt())
-                    .build()).collect(Collectors.toList());
+            return batches.stream().map(RawBatchServiceImpl::toRawBatchResponse).collect(Collectors.toList());
         } catch (Exception e) {
             log.error("getMyRawBatches failed", e);
             throw new RuntimeException("Lỗi lấy danh sách lô nguyên liệu: " + e.getMessage());
         }
+    }
+
+    @Override
+    public List<RawBatchResponse> getRawBatchesByOwnerId(String ownerId, String token) {
+        try {
+            extractUserIdFromToken(token);
+            if (ownerId == null || ownerId.isBlank()) {
+                throw new RuntimeException("Thiếu ownerId");
+            }
+            List<RawBatch> batches = rawBatchRepository.findAllByOwnerIdOrderByCreatedAtDesc(ownerId.trim());
+            return batches.stream().map(RawBatchServiceImpl::toRawBatchResponse).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("getRawBatchesByOwnerId failed", e);
+            if (e instanceof RuntimeException re) {
+                throw re;
+            }
+            throw new RuntimeException("Lỗi lấy danh sách lô theo chủ sở hữu: " + e.getMessage());
+        }
+    }
+
+    private static RawBatchResponse toRawBatchResponse(RawBatch batch) {
+        return RawBatchResponse.builder()
+                .id(batch.getId())
+                .rawBatchCode(batch.getRawBatchCode())
+                .materialType(batch.getMaterialType())
+                .materialName(batch.getMaterialName())
+                .harvestedAt(batch.getHarvestedAt())
+                .quantity(batch.getQuantity())
+                .unit(batch.getUnit())
+                .location(batch.getLocation())
+                .note(batch.getNote())
+                .status(batch.getStatus())
+                .batchIdHex(batch.getBatchIdHex())
+                .anchorTxHash(batch.getAnchorTxHash())
+                .createdAt(batch.getCreatedAt())
+                .build();
     }
 
     private static String generateShortCode() {

@@ -26,6 +26,9 @@ spring:
     username: admin
     password: password123 # Thay b?ng pass c?a b?n
     driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
   jpa:
     hibernate:
       ddl-auto: update

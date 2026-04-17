@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Button,
   Typography,
@@ -39,6 +39,23 @@ const SupplierRawBatchManagement = () => {
       return response.data.result;
     },
   });
+
+  const { data: materialCatalog, isLoading: catalogLoading } = useQuery({
+    queryKey: ['materialCatalog'],
+    queryFn: async () => {
+      const response = await api.get('/product/api/v1/material-catalog');
+      return response.data.result;
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const watchedMaterialType = Form.useWatch('materialType', form);
+
+  const materialNameOptions = useMemo(() => {
+    if (!materialCatalog || !watchedMaterialType) return [];
+    const cat = materialCatalog.find((c) => c.label === watchedMaterialType);
+    return cat?.items ?? [];
+  }, [materialCatalog, watchedMaterialType]);
 
   const handleGetLocationFromProfile = () => {
     const profile = queryClient.getQueryData(['userProfile']);
@@ -231,21 +248,26 @@ const SupplierRawBatchManagement = () => {
                 rules={[{ required: true, message: 'Vui lòng chọn loại nguyên liệu!' }]}
                 style={{ flex: 1, minWidth: '250px' }}
               >
-                <Select placeholder="Chọn loại nguyên liệu">
-                  <Option value="Sữa tươi">Sữa tươi</Option>
-                  <Option value="Rau củ">Rau củ</Option>
-                  <Option value="Cà phê">Cà phê</Option>
-                  <Option value="Khác">Khác</Option>
-                </Select>
+                <Select
+                  placeholder="Chọn loại nguyên liệu"
+                  loading={catalogLoading}
+                  onChange={() => form.setFieldsValue({ materialName: undefined })}
+                  options={(materialCatalog || []).map((c) => ({ value: c.label, label: c.label }))}
+                />
               </Form.Item>
 
               <Form.Item
                 name="materialName"
                 label="Tên nguyên liệu"
-                rules={[{ required: true, message: 'Vui lòng nhập tên nguyên liệu!' }]}
+                rules={[{ required: true, message: 'Vui lòng chọn tên nguyên liệu!' }]}
                 style={{ flex: 1, minWidth: '250px' }}
               >
-                <Input placeholder="VD: Sữa bò tươi nguyên liệu" />
+                <Select
+                  placeholder={watchedMaterialType ? 'Chọn tên trong loại' : 'Chọn loại trước'}
+                  disabled={!watchedMaterialType}
+                  loading={catalogLoading}
+                  options={materialNameOptions.map((i) => ({ value: i.name, label: i.name }))}
+                />
               </Form.Item>
             </div>
 

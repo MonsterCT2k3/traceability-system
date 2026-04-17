@@ -8,6 +8,12 @@ import ManufactureDashboard from './pages/manufacture/ManufactureDashboard';
 import SupplierDashboard from './pages/supplier/SupplierDashboard';
 import UserDashboard from './pages/user/UserDashboard';
 import Unauthorized from './pages/common/Unauthorized';
+import MobileOnlyNotice from './pages/common/MobileOnlyNotice';
+import {
+  isWebAllowedRole,
+  MOBILE_ONLY_ROLES,
+  normalizeRole,
+} from './constants/platformRoles';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,18 +28,27 @@ const queryClient = new QueryClient({
 const PrivateRoute = ({ element, allowedRoles }) => {
   const token = localStorage.getItem('accessToken');
   const userRole = localStorage.getItem('userRole');
+  const normalized = normalizeRole(userRole);
 
-  // Chưa có token -> đá về trang Login
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // Nếu route yêu cầu Role cụ thể, mà userRole không nằm trong danh sách cho phép -> đá sang trang Lỗi
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
+  /** Retailer / Transporter không dùng web — chỉ mobile. */
+  if (!isWebAllowedRole(normalized)) {
+    if (MOBILE_ONLY_ROLES.includes(normalized)) {
+      return <Navigate to="/mobile-only" replace />;
+    }
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userRole');
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(normalized)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Token và Role hợp lệ -> cho phép xem
   return element;
 };
 
@@ -47,6 +62,7 @@ function App() {
 
           <Route path="/login" element={<AuthPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/mobile-only" element={<MobileOnlyNotice />} />
 
           {/* Các trang yêu cầu đăng nhập */}
           <Route
@@ -66,7 +82,7 @@ function App() {
 
           <Route
             path="/user"
-            element={<PrivateRoute element={<UserDashboard />} allowedRoles={['USER', 'RETAILER', 'TRANSPORTER']} />}
+            element={<PrivateRoute element={<UserDashboard />} allowedRoles={['USER']} />}
           />
         </Routes>
       </BrowserRouter>

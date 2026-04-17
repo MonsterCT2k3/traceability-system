@@ -63,12 +63,22 @@ Ma trận này phản ánh đúng code hiện tại của `identity-service`, `a
 | `POST /api/v1/transfers` | `SUPPLIER`, `MANUFACTURER`, `RETAILER`, `TRANSPORTER`, `ADMIN` |
 | `POST /api/v1/transfers/{transferId}/respond` | `SUPPLIER`, `MANUFACTURER`, `RETAILER`, `TRANSPORTER`, `ADMIN` |
 | `GET /api/v1/transfers/pending` | `SUPPLIER`, `MANUFACTURER`, `RETAILER`, `TRANSPORTER`, `ADMIN` |
+| `POST /api/v1/orders` | `MANUFACTURER` (đơn M→NCC), `RETAILER` (đơn retailer→NSX) — kiểm tra `orderType` trong service |
+| `GET /api/v1/orders/mine/buyer` | `MANUFACTURER`, `RETAILER` |
+| `GET /api/v1/orders/mine/seller` | `SUPPLIER`, `MANUFACTURER` |
+| `GET /api/v1/orders/mine/carrier` | `TRANSPORTER` |
+| `POST /api/v1/orders/{id}/accept` | `SUPPLIER`, `MANUFACTURER` |
+| `POST /api/v1/orders/{id}/reject` | `SUPPLIER`, `MANUFACTURER` |
+| `POST /api/v1/orders/{id}/cancel` | `MANUFACTURER`, `RETAILER` |
+| `POST /api/v1/orders/{id}/assign-carrier` | `SUPPLIER`, `MANUFACTURER` |
+| `POST /api/v1/orders/{id}/confirm-picked-up` | `TRANSPORTER` (VC đã nhận hàng tại người bán, trạng thái `ASSIGNED_TO_CARRIER`) |
+| `POST /api/v1/orders/{id}/confirm-delivered` | `TRANSPORTER`, `SUPPLIER`, `MANUFACTURER` (VC chỉ sau `PICKED_UP_FROM_SELLER`; người bán xác nhận khi giao trực tiếp không qua VC từ `ACCEPTED`) |
 
-### Authenticated nhưng chưa gắn `@PreAuthorize` (chỉ cần token hợp lệ)
+### Authenticated nhưng chưa gắn `@PreAuthorize` theo role cụ thể (chỉ cần token hợp lệ)
 
 | Endpoint | Access |
 |---|---|
-| Không còn endpoint private nào trong controller hiện tại chỉ yêu cầu token mà không role-check. | N/A |
+| `GET /api/v1/orders/{id}` | Authenticated; quyền xem: người mua, người bán, VC (nếu có), hoặc `ADMIN` (kiểm tra trong service) |
 
 ## Gateway behavior (`:8080`)
 

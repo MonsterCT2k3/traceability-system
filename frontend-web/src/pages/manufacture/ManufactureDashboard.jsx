@@ -6,6 +6,7 @@ import {
   GoldOutlined,
   InboxOutlined,
   SwapOutlined,
+  ShoppingCartOutlined,
   LogoutOutlined,
   UserOutlined,
   MenuFoldOutlined,
@@ -16,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
+import ManufactureOrderManagement from './components/orders/ManufactureOrderManagement';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -516,6 +518,11 @@ const ManufactureDashboard = () => {
       label: 'Lô nguyên liệu',
     },
     {
+      key: 'orders',
+      icon: <ShoppingCartOutlined />,
+      label: 'Đặt hàng NCC',
+    },
+    {
       key: 'products',
       icon: <AppstoreAddOutlined />,
       label: 'Sản phẩm',
@@ -537,6 +544,7 @@ const ManufactureDashboard = () => {
     switch (selectedKey) {
       case 'dashboard': return <Overview />;
       case 'raw-batches': return <RawBatchManagement />;
+      case 'orders': return <ManufactureOrderManagement />;
       case 'products': return <ProductManagement />;
       case 'packaging': return <PackagingManagement />;
       case 'transfers': return <TransferManagement />;

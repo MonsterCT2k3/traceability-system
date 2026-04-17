@@ -4,6 +4,7 @@ import {
   DashboardOutlined,
   GoldOutlined,
   SwapOutlined,
+  ShoppingCartOutlined,
   LogoutOutlined,
   UserOutlined,
   MenuFoldOutlined,
@@ -14,6 +15,7 @@ import { jwtDecode } from 'jwt-decode';
 import SupplierOverview from './components/SupplierOverview';
 import SupplierRawBatchManagement from './components/SupplierRawBatchManagement';
 import SupplierTransferManagement from './components/SupplierTransferManagement';
+import SupplierOrderManagement from './components/orders/SupplierOrderManagement';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -58,6 +60,11 @@ const SupplierDashboard = () => {
       label: 'Lô nguyên liệu',
     },
     {
+      key: 'orders',
+      icon: <ShoppingCartOutlined />,
+      label: 'Đơn đặt hàng',
+    },
+    {
       key: 'transfers',
       icon: <SwapOutlined />,
       label: 'Vận chuyển',
@@ -70,6 +77,8 @@ const SupplierDashboard = () => {
         return <SupplierOverview />;
       case 'raw-batches':
         return <SupplierRawBatchManagement />;
+      case 'orders':
+        return <SupplierOrderManagement />;
       case 'transfers':
         return <SupplierTransferManagement />;
       default:

@@ -7,6 +7,14 @@ import api from '../../lib/api';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+/** Nhãn hiển thị cho vai trò trong danh sách yêu cầu */
+const ROLE_LABELS = {
+  MANUFACTURER: 'Nhà sản xuất',
+  SUPPLIER: 'Nhà cung cấp',
+  TRANSPORTER: 'Đơn vị vận chuyển',
+  RETAILER: 'Nhà bán lẻ',
+};
+
 const UserDashboard = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -74,7 +82,11 @@ const UserDashboard = () => {
       title: 'Vai trò yêu cầu',
       dataIndex: 'requestedRole',
       key: 'requestedRole',
-      render: (role) => <Tag color="blue">{role}</Tag>,
+      render: (role) => (
+        <Tag color="blue">
+          {ROLE_LABELS[role] ? `${ROLE_LABELS[role]} (${role})` : role}
+        </Tag>
+      ),
     },
     {
       title: 'Mô tả',
@@ -120,14 +132,20 @@ const UserDashboard = () => {
       </Card>
 
       <Card title="Gửi yêu cầu nâng cấp tài khoản" style={{ marginBottom: '24px' }}>
+        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+          Lưu ý: sau khi admin duyệt, vai trò <strong>Đơn vị vận chuyển</strong> và <strong>Nhà bán lẻ</strong> dùng đăng nhập trên{' '}
+          <strong>ứng dụng mobile</strong>; các vai trò còn lại có thể dùng web.
+        </Text>
         <Form form={form} layout="inline" onFinish={onFinish}>
           <Form.Item
             name="requestedRole"
             rules={[{ required: true, message: 'Vui lòng chọn vai trò muốn đăng ký!' }]}
           >
-            <Select placeholder="Chọn vai trò..." style={{ width: 200 }}>
+            <Select placeholder="Chọn vai trò..." style={{ width: 280 }}>
               <Option value="MANUFACTURER">Nhà sản xuất (MANUFACTURER)</Option>
               <Option value="SUPPLIER">Nhà cung cấp (SUPPLIER)</Option>
+              <Option value="TRANSPORTER">Đơn vị vận chuyển (TRANSPORTER)</Option>
+              <Option value="RETAILER">Nhà bán lẻ (RETAILER)</Option>
             </Select>
           </Form.Item>
           <Form.Item

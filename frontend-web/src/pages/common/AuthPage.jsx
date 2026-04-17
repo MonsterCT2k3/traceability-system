@@ -4,6 +4,11 @@ import { UserOutlined, LockOutlined, IdcardOutlined, MailOutlined, PhoneOutlined
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import api from '../../lib/api';
+import {
+  isWebAllowedRole,
+  MOBILE_ONLY_ROLES,
+  normalizeRole,
+} from '../../constants/platformRoles';
 import './Auth.css';
 
 const { Title, Text } = Typography;
@@ -23,18 +28,29 @@ const AuthPage = () => {
 
       const { accessToken, refreshToken } = response.data.result;
       const decoded = jwtDecode(accessToken);
+      const role = normalizeRole(decoded.role);
+
+      if (!isWebAllowedRole(role)) {
+        if (MOBILE_ONLY_ROLES.includes(role)) {
+          /** Không lưu token web; chuyển sang màn riêng rồi mới thông báo (xem MobileOnlyNotice). */
+          navigate('/mobile-only', { replace: true, state: { fromLogin: true } });
+          return;
+        }
+        message.error('Phiên bản web không hỗ trợ vai trò này.');
+        return;
+      }
 
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('userRole', decoded.role);
+      localStorage.setItem('userRole', role);
 
-      message.success(`Đăng nhập thành công! Vai trò: ${decoded.role}`);
-      
-      if (decoded.role === 'ADMIN') {
+      message.success(`Đăng nhập thành công! Vai trò: ${role}`);
+
+      if (role === 'ADMIN') {
         navigate('/admin');
-      } else if (decoded.role === 'MANUFACTURER') {
+      } else if (role === 'MANUFACTURER') {
         navigate('/manufacture');
-      } else if (decoded.role === 'SUPPLIER') {
+      } else if (role === 'SUPPLIER') {
         navigate('/supplier');
       } else {
         navigate('/user');

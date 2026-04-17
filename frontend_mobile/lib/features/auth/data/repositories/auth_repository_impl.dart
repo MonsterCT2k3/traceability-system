@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
+import '../../../../core/constants/platform_roles.dart';
 import '../../../../core/error/failures.dart';
 import '../../../profile/domain/entities/role_request.dart';
 import '../../domain/entities/user.dart';
@@ -34,7 +35,17 @@ class AuthRepositoryImpl implements AuthRepository {
         final profileResponse = await apiClient.get('/identity/api/v1/users/profile');
         if (profileResponse.statusCode == 200) {
           final userData = profileResponse.data['result'];
-          return Right(User.fromJson(userData));
+          final user = User.fromJson(userData);
+          if (!PlatformRoles.isMobileAllowed(user.role)) {
+            await apiClient.sharedPreferences.remove('accessToken');
+            await apiClient.sharedPreferences.remove('refreshToken');
+            return const Left(
+              ServerFailure(
+                'Vui lòng sử dụng phiên bản web trên trình duyệt.',
+              ),
+            );
+          }
+          return Right(user);
         } else {
           return const Left(ServerFailure('Không thể lấy thông tin người dùng'));
         }

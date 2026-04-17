@@ -1,0 +1,21 @@
+/* Tương phản rõ khi trang/system dùng dark theme — chữ trắng trên nền tối */
+.mobile-only-notice {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #141414;
+  color: #fff;
+}
+
+.mobile-only-notice .ant-result-title {
+  color: #ffffff !important;
+}
+
+.mobile-only-notice .ant-result-subtitle {
+  color: rgba(255, 255, 255, 0.88) !important;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}

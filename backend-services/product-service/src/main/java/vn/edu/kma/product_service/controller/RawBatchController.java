@@ -104,5 +104,32 @@ public class RawBatchController {
             );
         }
     }
+
+    /**
+     * Lô nguyên liệu đang thuộc một chủ (NCC) — phục vụ NSX chọn lô khi đặt hàng.
+     */
+    @GetMapping("/by-owner/{ownerId}")
+    @PreAuthorize("hasAnyRole('MANUFACTURER','ADMIN')")
+    public ResponseEntity<ApiResponse<List<RawBatchResponse>>> getByOwner(
+            @PathVariable String ownerId,
+            @RequestHeader("Authorization") String token
+    ) {
+        try {
+            List<RawBatchResponse> result = rawBatchService.getRawBatchesByOwnerId(ownerId, token);
+            return ResponseEntity.ok(ApiResponse.<List<RawBatchResponse>>builder()
+                    .code(200)
+                    .message("OK")
+                    .result(result)
+                    .build());
+        } catch (Exception e) {
+            log.error("getByOwner failed", e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.<List<RawBatchResponse>>builder()
+                            .code(500)
+                            .message("Lỗi: " + e.getMessage())
+                            .build()
+            );
+        }
+    }
 }
 

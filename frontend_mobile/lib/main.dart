@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'injection_container.dart' as di;
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/main/presentation/pages/main_page.dart';
+import 'features/transporter/presentation/pages/transporter_shell_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +14,10 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+  static bool _isTransporterRole(String? role) {
+    return role != null && role.trim().toUpperCase() == 'TRANSPORTER';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +33,21 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
           useMaterial3: true,
         ),
-        home: const MainPage(),
+        home: BlocBuilder<AuthBloc, AuthState>(
+          buildWhen: (prev, next) {
+            if (prev.runtimeType != next.runtimeType) return true;
+            if (prev is AuthAuthenticated && next is AuthAuthenticated) {
+              return prev.user.role != next.user.role;
+            }
+            return false;
+          },
+          builder: (context, state) {
+            if (state is AuthAuthenticated && _isTransporterRole(state.user.role)) {
+              return const TransporterShellPage();
+            }
+            return const MainPage();
+          },
+        ),
       ),
     );
   }

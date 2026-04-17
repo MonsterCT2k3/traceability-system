@@ -17,5 +17,10 @@ public interface RawBatchService {
     Map<String, String> mergeRawBatches(RawBatchMergeRequest request, String token);
 
     List<RawBatchResponse> getMyRawBatches(String token);
+
+    /**
+     * Danh sách lô theo chủ sở hữu (dùng khi NSX chọn NCC để đặt hàng).
+     */
+    List<RawBatchResponse> getRawBatchesByOwnerId(String ownerId, String token);
 }
 
