@@ -32,32 +32,10 @@ public class ProductUnit {
     @Column(nullable = false, unique = true)
     private String unitSerial;
 
-    /**
-     * Chủ sau khi claim; null = chưa gán.
-     */
-    private String ownerId;
-
-    /**
-     * SHA-256 hex (64 ký tự, không prefix 0x) của secret scratch-off (UTF-8).
-     * Null nếu chưa sinh secret.
-     */
-    @Column(length = 64, unique = true)
-    private String secretHash;
-
-    /**
-     * Số lần quét / xác thực qua mã bí mật (scratch): mỗi lần gọi secret-scan đúng secret +1.
-     */
+    /** Số lần quét truy xuất công khai (theo id/serial). */
     @Column(nullable = false)
     @Builder.Default
     private Integer scanCount = 0;
-
-    /**
-     * Thời điểm claim thành công (nếu có).
-     */
-    private LocalDateTime claimedAt;
-
-    @Column(columnDefinition = "TEXT")
-    private String ownerNameSnapshot;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

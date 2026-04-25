@@ -12,7 +12,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PalletBulkCartonResult {
-    private String cartonId;
     private String cartonCode;
-    private List<ProductUnitGeneratedItem> units;
+    private List<PackingUnitSerialItem> units;
 }

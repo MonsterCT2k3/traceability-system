@@ -9,8 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductUnitSecretScanResponse {
-    private String unitId;
-    private String unitSerial;
-    private Integer scanCount;
+public class BanknoteSerialSummaryResponse {
+    private long totalSerials;
+    private long mySerials;
+    private long usedSerials;
+    private long availableSerials;
 }

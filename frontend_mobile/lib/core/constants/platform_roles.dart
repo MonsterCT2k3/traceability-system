@@ -6,6 +6,7 @@ class PlatformRoles {
     'USER',
     'RETAILER',
     'TRANSPORTER',
+    'MANUFACTURER',
   };
 
   static String normalize(String? role) => (role ?? '').trim().toUpperCase();

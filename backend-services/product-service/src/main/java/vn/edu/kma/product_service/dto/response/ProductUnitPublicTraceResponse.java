@@ -29,7 +29,6 @@ public class ProductUnitPublicTraceResponse {
     private String palletManufacturedAt;
     private String palletExpiryAt;
 
-    private boolean claimed;
-    /** Số lần quét/xác thực mã bí mật (POST secret-scan đúng secret); trace công khai không tăng. */
+    /** Số lần quét truy xuất công khai (theo id/serial). */
     private Integer scanCount;
 }

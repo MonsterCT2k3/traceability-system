@@ -15,7 +15,6 @@ public class PalletAnchorRequest {
     private String unit;
     private String packagingType;
     private String processingMethod;
-    private String plantCode;
     private String location;
     private String note;
 

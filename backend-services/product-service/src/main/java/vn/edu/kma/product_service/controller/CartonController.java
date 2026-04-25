@@ -58,7 +58,9 @@ public class CartonController {
     }
 
     /**
-     * Đóng hàng loạt: tạo N carton trên pallet + sinh M unit/thùng (secret chỉ có trong response, lưu ngay).
+     * Đóng hàng loạt:
+     * - Luồng mới: truyền serialBatches (mỗi batch = 1 carton, mỗi serial = 1 unitSerial),
+     * - Legacy: cartonCount + unitsPerCarton.
      */
     @PostMapping("/{palletId}/packing-bulk")
     @PreAuthorize("hasAnyRole('SUPPLIER','MANUFACTURER','ADMIN')")

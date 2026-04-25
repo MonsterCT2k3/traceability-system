@@ -5,9 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Một dòng trong response generate: secret chỉ có ở đây, không lưu DB.
- */
+/** Một dòng trong response generate unit. */
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,5 +13,4 @@ import lombok.NoArgsConstructor;
 public class ProductUnitGeneratedItem {
     private String unitId;
     private String unitSerial;
-    private String secretPlain;
 }

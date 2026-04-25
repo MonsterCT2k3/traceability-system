@@ -11,10 +11,11 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductUnitClaimResponse {
-    private String unitId;
-    private String unitSerial;
-    private String ownerId;
-    private LocalDateTime claimedAt;
-    private String ownerNameSnapshot;
+public class PalletSummaryResponse {
+    private String id;
+    private String palletCode;
+    private String palletName;
+    private String batchNo;
+    private String productId;
+    private LocalDateTime createdAt;
 }

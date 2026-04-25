@@ -118,6 +118,13 @@
 			<version>3.5.3</version>
 		</dependency>
 
+		<!-- Cloudinary — upload ảnh catalog sản phẩm (cùng pattern identity-service) -->
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http44</artifactId>
+			<version>1.36.0</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>

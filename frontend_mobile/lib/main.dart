@@ -5,6 +5,8 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/main/presentation/pages/main_page.dart';
 import 'features/transporter/presentation/pages/transporter_shell_page.dart';
+import 'features/manufacturer/presentation/pages/manufacturer_shell_page.dart';
+import 'features/retailer/presentation/pages/retailer_shell_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +19,14 @@ class MyApp extends StatelessWidget {
 
   static bool _isTransporterRole(String? role) {
     return role != null && role.trim().toUpperCase() == 'TRANSPORTER';
+  }
+
+  static bool _isManufacturerRole(String? role) {
+    return role != null && role.trim().toUpperCase() == 'MANUFACTURER';
+  }
+
+  static bool _isRetailerRole(String? role) {
+    return role != null && role.trim().toUpperCase() == 'RETAILER';
   }
 
   @override
@@ -42,8 +52,16 @@ class MyApp extends StatelessWidget {
             return false;
           },
           builder: (context, state) {
-            if (state is AuthAuthenticated && _isTransporterRole(state.user.role)) {
-              return const TransporterShellPage();
+            if (state is AuthAuthenticated) {
+              if (_isTransporterRole(state.user.role)) {
+                return const TransporterShellPage();
+              }
+              if (_isManufacturerRole(state.user.role)) {
+                return const ManufacturerShellPage();
+              }
+              if (_isRetailerRole(state.user.role)) {
+                return const RetailerShellPage();
+              }
             }
             return const MainPage();
           },

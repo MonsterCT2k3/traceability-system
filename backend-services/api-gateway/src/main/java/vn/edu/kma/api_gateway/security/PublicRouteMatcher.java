@@ -3,17 +3,22 @@ package vn.edu.kma.api_gateway.security;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Các request <strong>không</strong> cần {@code Authorization: Bearer} khi đi qua gateway.
+ * Các request <strong>không</strong> cần {@code Authorization: Bearer} khi đi
+ * qua gateway.
  * <p>
- * Khớp prefix service: {@code /identity/...}, {@code /product/...}, {@code /blockchain/...}
+ * Khớp prefix service: {@code /identity/...}, {@code /product/...},
+ * {@code /blockchain/...}
  * (servlet path thường có dạng {@code /product/api/v1/...}).
  * <ul>
- *   <li><b>Auth</b>: mọi method dưới {@code /api/v1/auth/} (login, register, refresh, logout, introspect)</li>
- *   <li><b>CORS preflight</b>: {@code OPTIONS} — luôn cho qua</li>
- *   <li><b>GET công khai</b>: catalog sản phẩm, trace unit, lịch sử theo product, đọc batch trên chain</li>
- *   <li><b>POST công khai</b>: {@code .../units/{id}/secret-scan}</li>
+ * <li><b>Auth</b>: mọi method dưới {@code /api/v1/auth/} (login, register,
+ * refresh, logout, introspect)</li>
+ * <li><b>CORS preflight</b>: {@code OPTIONS} — luôn cho qua</li>
+ * <li><b>GET công khai</b>: catalog sản phẩm, trace unit, lịch sử theo product,
+ * đọc batch trên chain</li>
+ * <li><b>POST công khai</b>: {@code .../units/{id}/secret-scan}</li>
  * </ul>
- * Các API như {@code /api/v1/transfers/**}, tạo sản phẩm, claim unit… vẫn cần JWT.
+ * Các API như {@code /api/v1/transfers/**}, tạo sản phẩm, claim unit… vẫn cần
+ * JWT.
  */
 public final class PublicRouteMatcher {
 

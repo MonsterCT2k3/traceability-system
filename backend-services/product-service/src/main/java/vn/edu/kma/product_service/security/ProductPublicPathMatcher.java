@@ -3,7 +3,8 @@ package vn.edu.kma.product_service.security;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Khớp {@code PublicRouteMatcher} trên gateway (servlet path trực tiếp tới product: {@code /api/v1/...}).
+ * Khớp {@code PublicRouteMatcher} trên gateway (servlet path trực tiếp tới
+ * product: {@code /api/v1/...}).
  */
 public final class ProductPublicPathMatcher {
 

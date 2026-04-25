@@ -9,8 +9,10 @@ import vn.edu.kma.product_service.config.OpenApiConfig;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.PalletAnchorRequest;
+import vn.edu.kma.product_service.dto.response.PalletSummaryResponse;
 import vn.edu.kma.product_service.service.PalletService;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -21,6 +23,29 @@ import java.util.Map;
 public class PalletController {
 
     private final PalletService palletService;
+
+    @GetMapping("/pallets/my")
+    @PreAuthorize("hasAnyRole('MANUFACTURER','ADMIN')")
+    public ResponseEntity<ApiResponse<List<PalletSummaryResponse>>> getMyPallets(
+            @RequestHeader("Authorization") String tokenHeader
+    ) {
+        try {
+            List<PalletSummaryResponse> result = palletService.getMyPallets(tokenHeader);
+            return ResponseEntity.ok(ApiResponse.<List<PalletSummaryResponse>>builder()
+                    .code(200)
+                    .message("Lấy danh sách lô sản xuất thành công")
+                    .result(result)
+                    .build());
+        } catch (Exception e) {
+            log.error("getMyPallets failed", e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.<List<PalletSummaryResponse>>builder()
+                            .code(500)
+                            .message("Lỗi: " + e.getMessage())
+                            .build()
+            );
+        }
+    }
 
     /**
      * Anchor transformed-batch lên chain.

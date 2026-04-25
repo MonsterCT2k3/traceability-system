@@ -18,6 +18,10 @@ import { jwtDecode } from 'jwt-decode';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import ManufactureOrderManagement from './components/orders/ManufactureOrderManagement';
+import ManufactureRetailOrdersManagement from './components/orders/ManufactureRetailOrdersManagement';
+import ProductManagement from './components/products/ProductManagement';
+import ManufactureProductionManagement from './components/production/ManufactureProductionManagement';
+import GoodsManagement from './components/goods/GoodsManagement';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -220,13 +224,6 @@ const Overview = () => {
     </div>
   );
 };
-
-const ProductManagement = () => (
-  <div>
-    <Title level={4}>Quản lý Sản phẩm</Title>
-    <Text>Giao diện thêm mới và danh sách các loại sản phẩm (Product) sẽ nằm ở đây.</Text>
-  </div>
-);
 
 const { Option } = Select;
 
@@ -523,14 +520,29 @@ const ManufactureDashboard = () => {
       label: 'Đặt hàng NCC',
     },
     {
+      key: 'retail-orders',
+      icon: <ShoppingCartOutlined />,
+      label: 'Đơn hàng',
+    },
+    {
       key: 'products',
       icon: <AppstoreAddOutlined />,
       label: 'Sản phẩm',
     },
     {
+      key: 'production',
+      icon: <InboxOutlined />,
+      label: 'Sản xuất',
+    },
+    {
       key: 'packaging',
       icon: <InboxOutlined />,
       label: 'Đóng gói',
+    },
+    {
+      key: 'goods',
+      icon: <InboxOutlined />,
+      label: 'Quản lý hàng hóa',
     },
     {
       key: 'transfers',
@@ -545,8 +557,11 @@ const ManufactureDashboard = () => {
       case 'dashboard': return <Overview />;
       case 'raw-batches': return <RawBatchManagement />;
       case 'orders': return <ManufactureOrderManagement />;
+      case 'retail-orders': return <ManufactureRetailOrdersManagement />;
       case 'products': return <ProductManagement />;
+      case 'production': return <ManufactureProductionManagement />;
       case 'packaging': return <PackagingManagement />;
+      case 'goods': return <GoodsManagement />;
       case 'transfers': return <TransferManagement />;
       default: return <Overview />;
     }

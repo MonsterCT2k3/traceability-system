@@ -12,6 +12,7 @@ import org.web3j.crypto.Hash;
 import org.web3j.utils.Numeric;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.PalletAnchorRequest;
+import vn.edu.kma.product_service.dto.response.PalletSummaryResponse;
 import vn.edu.kma.product_service.entity.Pallet;
 import vn.edu.kma.product_service.repository.PalletRepository;
 import vn.edu.kma.product_service.repository.ProductRepository;
@@ -71,7 +72,6 @@ public class PalletServiceImpl implements PalletService {
                     normalizeString(request.getUnit()) + "|" +
                     normalizeString(request.getPackagingType()) + "|" +
                     normalizeString(request.getProcessingMethod()) + "|" +
-                    normalizeString(request.getPlantCode()) + "|" +
                     normalizeString(request.getLocation()) + "|" +
                     normalizeString(request.getNote()) + "|" +
                     SCHEMA_VERSION;
@@ -108,7 +108,6 @@ public class PalletServiceImpl implements PalletService {
                     .unit(normalizeString(request.getUnit()))
                     .packagingType(normalizeString(request.getPackagingType()))
                     .processingMethod(normalizeString(request.getProcessingMethod()))
-                    .plantCode(normalizeString(request.getPlantCode()))
                     .location(normalizeString(request.getLocation()))
                     .note(normalizeString(request.getNote()))
                     .schemaVersion(SCHEMA_VERSION)
@@ -132,6 +131,26 @@ public class PalletServiceImpl implements PalletService {
         } catch (Exception e) {
             log.error("anchorPallet failed", e);
             throw new RuntimeException("Lỗi anchor pallet: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<PalletSummaryResponse> getMyPallets(String tokenHeader) {
+        try {
+            String ownerId = extractUserIdFromToken(tokenHeader);
+            return palletRepository.findAllByOwnerIdOrderByCreatedAtDesc(ownerId).stream()
+                    .map(p -> PalletSummaryResponse.builder()
+                            .id(p.getId())
+                            .palletCode(p.getPalletCode())
+                            .palletName(p.getPalletName())
+                            .batchNo(p.getBatchNo())
+                            .productId(p.getProductId())
+                            .createdAt(p.getCreatedAt())
+                            .build())
+                    .toList();
+        } catch (Exception e) {
+            log.error("getMyPallets failed", e);
+            throw new RuntimeException("Lỗi lấy danh sách lô sản xuất: " + e.getMessage());
         }
     }
 

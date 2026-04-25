@@ -6,8 +6,8 @@ class ApiClient {
   final SharedPreferences sharedPreferences;
 
   ApiClient({required this.dio, required this.sharedPreferences}) {
-    // dio.options.baseUrl = 'https://2476-118-71-204-229.ngrok-free.app'; // API Gateway URL
-    dio.options.baseUrl = 'http://localhost:8080'; // API Gateway URL
+    dio.options.baseUrl = 'https://fbf1-2405-4802-49c-e3d0-c6b-49c3-9647-84e8.ngrok-free.app'; // API Gateway URL
+    // dio.options.baseUrl = 'http://localhost:8080'; // API Gateway URL
     dio.options.connectTimeout = const Duration(seconds: 10);
     dio.options.receiveTimeout = const Duration(seconds: 10);
 

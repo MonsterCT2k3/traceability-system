@@ -1,5 +1,5 @@
 server:
-  port: 8082 # Port ri�ng cho Product Service
+  port: 8082 # Port riêng cho Product Service
 
 # Base URL cho QR catalog sản phẩm (link web). QR unit truy xuất chỉ chứa UUID, không dùng cấu hình này.
 app:
@@ -10,6 +10,12 @@ app:
 jwt:
   signerKey: ${JWT_SIGNER_KEY:YourSuperSecretKeyForJWTThatIsLongEnoughToBeSecure}
 
+# Cùng biến môi trường Cloudinary như identity-service (một tài khoản cho dev)
+cloudinary:
+  cloud_name: diftonvou
+  api_key: 489513278158246
+  api_secret: jc2N5MPilV-1ZjRv3rjw9PX27fo
+
 springdoc:
   swagger-ui:
     tags-sorter: alpha
@@ -18,13 +24,17 @@ springdoc:
 spring:
   application:
     name: product-service
-  # Base URL blockchain-service (KHÔNG thêm / ở cuối). Nối thêm path: /ownership-change, /transformed-batch, ...
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  # Base URL blockchain-service (KHÔNG thêm / ở cuối). Nối thêm path: /ownership-change, /transformed-batch, /...
   url:
     blockchain-service: http://localhost:8083/api/v1/blockchain
   datasource:
     url: jdbc:postgresql://localhost:5433/product_db?serverTimezone=Asia/Ho_Chi_Minh&timezone=Asia/Ho_Chi_Minh
     username: admin
-    password: password123 # Thay b?ng pass c?a b?n
+    password: password123 # Thay bằng pass của bạn
     driver-class-name: org.postgresql.Driver
   flyway:
     enabled: true

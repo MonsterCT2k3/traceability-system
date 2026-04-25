@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Ứng dụng cần camera để quét mã vạch/QR hoặc chụp ảnh tờ tiền để đọc số seri.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Chọn ảnh chụp tờ tiền để đọc số seri (OCR).</string>
 </dict>
 </plist>
