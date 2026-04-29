@@ -50,11 +50,11 @@ public class AuthenticationService {
     public AuthenticationResponse login(AuthenticationRequest request) {
         // 1. Tìm user trong DB
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("Tài khoản hoặc mật khẩu không chính xác!"));
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
         // 2. Kiểm tra mật khẩu
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Tài khoản hoặc mật khẩu không chính xác!");
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
         // 3. Tạo Access Token (cùng claim với refresh)

@@ -70,7 +70,6 @@ public class UserManagementService {
      */
     @Transactional(readOnly = true)
     public SupplierDirectoryResponse getDirectoryUserById(String userIdRaw) {
-        assertOrderParticipantDirectoryLookup();
         if (userIdRaw == null || userIdRaw.isBlank()) {
             throw new AppException(ErrorCode.INVALID_KEY);
         }

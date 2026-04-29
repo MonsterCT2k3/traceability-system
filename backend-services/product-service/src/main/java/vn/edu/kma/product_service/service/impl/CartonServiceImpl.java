@@ -45,6 +45,7 @@ public class CartonServiceImpl implements CartonService {
                     .plannedUnitCount(request.getPlannedUnitCount())
                     .unitLabel(trimToNull(request.getUnitLabel()))
                     .ownerId(pallet.getOwnerId())
+                    .manufacturerId(pallet.getManufacturerId())
                     .note(trimToNull(request.getNote()))
                     .build());
             return saved;

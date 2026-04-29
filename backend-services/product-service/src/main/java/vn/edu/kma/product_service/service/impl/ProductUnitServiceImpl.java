@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
 import vn.edu.kma.product_service.dto.request.ProductUnitGenerateRequest;
 import vn.edu.kma.product_service.dto.response.ProductUnitGeneratedItem;
 import vn.edu.kma.product_service.dto.response.ProductUnitGenerateResponse;
@@ -18,7 +20,12 @@ import vn.edu.kma.product_service.repository.CartonRepository;
 import vn.edu.kma.product_service.repository.PalletRepository;
 import vn.edu.kma.product_service.repository.ProductRepository;
 import vn.edu.kma.product_service.repository.ProductUnitRepository;
+import vn.edu.kma.product_service.repository.RawBatchRepository;
+import vn.edu.kma.product_service.repository.TransferRecordRepository;
 import vn.edu.kma.product_service.service.ProductUnitService;
+import vn.edu.kma.product_service.dto.response.TraceHistoryEvent;
+import vn.edu.kma.product_service.entity.RawBatch;
+import vn.edu.kma.product_service.entity.TransferRecord;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -36,10 +43,17 @@ public class ProductUnitServiceImpl implements ProductUnitService {
     private final PalletRepository palletRepository;
     private final ProductRepository productRepository;
     private final BanknoteSerialRepository banknoteSerialRepository;
+    private final RawBatchRepository rawBatchRepository;
+    private final TransferRecordRepository transferRecordRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${app.services.identity.url:http://localhost:8081}")
+    private String identityServiceUrl;
 
     @Override
     @Transactional
-    public ProductUnitGenerateResponse generateUnits(String cartonId, ProductUnitGenerateRequest request, String tokenHeader) {
+    public ProductUnitGenerateResponse generateUnits(String cartonId, ProductUnitGenerateRequest request,
+            String tokenHeader) {
         try {
             String userId = extractUserIdFromToken(tokenHeader);
             Carton carton = cartonRepository.findById(cartonId)
@@ -95,6 +109,8 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                         .palletId(carton.getPalletId())
                         .productId(carton.getProductId())
                         .unitSerial(unitSerial)
+                        .ownerId(userId)
+                        .manufacturerId(carton.getManufacturerId())
                         .build());
 
                 items.add(ProductUnitGeneratedItem.builder()
@@ -191,6 +207,8 @@ public class ProductUnitServiceImpl implements ProductUnitService {
 
         int scanDisplay = unit.getScanCount() == null ? 0 : unit.getScanCount();
 
+        List<TraceHistoryEvent> historyEvents = buildHistoryEvents(pallet, carton, unit);
+
         return ProductUnitPublicTraceResponse.builder()
                 .unitId(unit.getId())
                 .unitSerial(unit.getUnitSerial())
@@ -204,7 +222,136 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 .palletManufacturedAt(pallet.getManufacturedAt())
                 .palletExpiryAt(emptyToNull(pallet.getExpiryAt()))
                 .scanCount(scanDisplay)
+                .historyEvents(historyEvents)
                 .build();
+    }
+
+    private List<TraceHistoryEvent> buildHistoryEvents(Pallet pallet, Carton carton, ProductUnit unit) {
+        List<TraceHistoryEvent> events = new ArrayList<>();
+
+        // 1. Tìm thông tin Lô nguyên liệu gốc (RawBatch)
+        if (pallet.getParentRawBatchIdHexes() != null && !pallet.getParentRawBatchIdHexes().isBlank()) {
+            String[] rawBatchHexes = pallet.getParentRawBatchIdHexes().split(",");
+            for (String hex : rawBatchHexes) {
+                rawBatchRepository.findByBatchIdHex(hex.trim()).ifPresent(raw -> {
+                    events.add(TraceHistoryEvent.builder()
+                            .eventType("RAW_BATCH_CREATED")
+                            .eventDescription("Khai báo lô nguyên liệu gốc: " + raw.getMaterialName())
+                            .timestamp(raw.getCreatedAt())
+                            .actorId(raw.getOwnerId())
+                            .actorName(fetchActorName(raw.getOwnerId()))
+                            .location(raw.getLocation())
+                            .txHash(raw.getBatchIdHex())
+                            .build());
+
+                    // Tìm lịch sử vận chuyển của RawBatch này (nếu có)
+                    List<TransferRecord> rawTransfers = transferRecordRepository
+                            .findByTargetTypeAndTargetIdOrderByCreatedAtAsc("RAW_BATCH", raw.getId());
+                    for (TransferRecord tr : rawTransfers) {
+                        if ("ACCEPTED".equals(tr.getStatus())) {
+                            events.add(TraceHistoryEvent.builder()
+                                    .eventType("RAW_BATCH_TRANSFERRED")
+                                    .eventDescription("Chuyển giao nguyên liệu thành công")
+                                    .timestamp(tr.getUpdatedAt() != null ? tr.getUpdatedAt() : tr.getCreatedAt())
+                                    .actorId(tr.getToUserId()) // Người nhận
+                                    .actorName(fetchActorName(tr.getToUserId()))
+                                    .txHash(tr.getBlockchainTxHash())
+                                    .build());
+                        }
+                    }
+                });
+            }
+        }
+
+        // 2. Sự kiện sản xuất Pallet
+        events.add(TraceHistoryEvent.builder()
+                .eventType("PALLET_MANUFACTURED")
+                .eventDescription("Sản xuất và đóng gói lô hàng: " + pallet.getPalletName())
+                .timestamp(pallet.getCreatedAt())
+                .actorId(pallet.getOwnerId())
+                .actorName(fetchActorName(pallet.getOwnerId()))
+                .location(pallet.getLocation())
+                .txHash(pallet.getChainBatchIdHex())
+                .build());
+
+        // 3. Sự kiện chuyển giao Pallet
+        List<TransferRecord> palletTransfers = transferRecordRepository
+                .findByTargetTypeAndTargetIdOrderByCreatedAtAsc("PALLET", pallet.getId());
+        for (TransferRecord tr : palletTransfers) {
+            if ("ACCEPTED".equals(tr.getStatus())) {
+                events.add(TraceHistoryEvent.builder()
+                        .eventType("PALLET_TRANSFERRED")
+                        .eventDescription("Lô hàng được chuyển giao thành công")
+                        .timestamp(tr.getUpdatedAt() != null ? tr.getUpdatedAt() : tr.getCreatedAt())
+                        .actorId(tr.getToUserId())
+                        .actorName(fetchActorName(tr.getToUserId()))
+                        .txHash(tr.getBlockchainTxHash())
+                        .build());
+            }
+        }
+
+        // 4. Sự kiện chuyển giao Thùng (Carton)
+        List<TransferRecord> cartonTransfers = transferRecordRepository
+                .findByTargetTypeAndTargetIdOrderByCreatedAtAsc("CARTON", carton.getId());
+        for (TransferRecord tr : cartonTransfers) {
+            if ("ACCEPTED".equals(tr.getStatus())) {
+                events.add(TraceHistoryEvent.builder()
+                        .eventType("CARTON_TRANSFERRED")
+                        .eventDescription("Thùng hàng được chuyển giao thành công")
+                        .timestamp(tr.getUpdatedAt() != null ? tr.getUpdatedAt() : tr.getCreatedAt())
+                        .actorId(tr.getToUserId())
+                        .actorName(fetchActorName(tr.getToUserId()))
+                        .txHash(tr.getBlockchainTxHash())
+                        .build());
+            }
+        }
+
+        // 5. Sự kiện chuyển giao Đơn vị sản phẩm (Unit)
+        List<TransferRecord> unitTransfers = transferRecordRepository
+                .findByTargetTypeAndTargetIdOrderByCreatedAtAsc("UNIT", unit.getId());
+        for (TransferRecord tr : unitTransfers) {
+            if ("ACCEPTED".equals(tr.getStatus())) {
+                events.add(TraceHistoryEvent.builder()
+                        .eventType("UNIT_TRANSFERRED")
+                        .eventDescription("Sản phẩm được chuyển giao thành công")
+                        .timestamp(tr.getUpdatedAt() != null ? tr.getUpdatedAt() : tr.getCreatedAt())
+                        .actorId(tr.getToUserId())
+                        .actorName(fetchActorName(tr.getToUserId()))
+                        .txHash(tr.getBlockchainTxHash())
+                        .build());
+            }
+        }
+
+        // Sắp xếp theo thời gian tăng dần (từ gốc tới hiện tại)
+        events.sort((a, b) -> {
+            if (a.getTimestamp() == null)
+                return -1;
+            if (b.getTimestamp() == null)
+                return 1;
+            return a.getTimestamp().compareTo(b.getTimestamp());
+        });
+
+        return events;
+    }
+
+    private String fetchActorName(String actorId) {
+        if (actorId == null || actorId.isBlank())
+            return null;
+        try {
+            String url = identityServiceUrl + "/api/v1/users/directory/by-id/" + actorId;
+            vn.edu.kma.common.dto.response.ApiResponse<?> response = restTemplate.getForObject(url,
+                    vn.edu.kma.common.dto.response.ApiResponse.class);
+            if (response != null && response.getResult() != null) {
+                java.util.Map<?, ?> result = (java.util.Map<?, ?>) response.getResult();
+                Object fullNameObj = result.get("fullName");
+                if (fullNameObj != null && !fullNameObj.toString().isBlank()) {
+                    return fullNameObj.toString();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not fetch actor name for id: {}", actorId);
+        }
+        return null;
     }
 
     private static String emptyToNull(String s) {

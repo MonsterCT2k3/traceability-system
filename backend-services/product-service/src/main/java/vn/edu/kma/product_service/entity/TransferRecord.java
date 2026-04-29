@@ -69,7 +69,7 @@ public class TransferRecord {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        status = "PENDING";
+        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (status == null) status = "PENDING";
     }
 }

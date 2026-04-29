@@ -3,6 +3,8 @@ package vn.edu.kma.product_service.service.impl;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.kma.product_service.dto.request.ProductRequest;
 import vn.edu.kma.product_service.dto.response.PackingUnitSerialItem;
@@ -29,6 +31,10 @@ public class ProductServiceImpl implements ProductService {
     private final CartonRepository cartonRepository;
     private final ProductUnitRepository productUnitRepository;
     private final CloudinaryService cloudinaryService;
+    private final RestTemplate restTemplate;
+
+    @Value("${app.services.identity.url:http://localhost:8081}")
+    private String identityServiceUrl;
 
     @Override
     public Product createProduct(ProductRequest request, MultipartFile image, String token) {
@@ -72,8 +78,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductPackingSummaryResponse> getMyPackingSummary(String tokenHeader) {
         try {
-            String ownerId = extractUserIdFromToken(tokenHeader);
-            List<ProductPackingSummaryProjection> rows = cartonRepository.summarizePackingByOwner(ownerId);
+            String manufacturerId = extractUserIdFromToken(tokenHeader);
+            List<ProductPackingSummaryProjection> rows = cartonRepository.summarizePackingByManufacturer(manufacturerId);
             return rows.stream()
                     .map(r -> ProductPackingSummaryResponse.builder()
                             .productId(r.getProductId())
@@ -83,41 +89,64 @@ public class ProductServiceImpl implements ProductService {
                             .build())
                     .toList();
         } catch (Exception e) {
-            throw new RuntimeException("Lỗi lấy thống kê đóng gói: " + e.getMessage());
+            throw new RuntimeException("Lỗi lấy thống kê sản xuất: " + e.getMessage());
         }
     }
 
     @Override
     public List<ProductPackingManifestResponse> getMyPackingManifest(String tokenHeader) {
         try {
-            String ownerId = extractUserIdFromToken(tokenHeader);
-            List<Carton> cartons = cartonRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId);
+            String manufacturerId = extractUserIdFromToken(tokenHeader);
+            List<Carton> cartons = cartonRepository.findByManufacturerIdWithFallback(manufacturerId);
             Map<String, ProductPackingManifestResponse> grouped = new LinkedHashMap<>();
 
+            Map<String, String> ownerNameCache = new java.util.HashMap<>();
             for (Carton carton : cartons) {
-                ProductPackingManifestResponse current = grouped.computeIfAbsent(
-                        carton.getProductId(),
-                        productId -> ProductPackingManifestResponse.builder()
-                                .productId(productId)
-                                .productName(resolveProductName(productId))
-                                .cartons(new java.util.ArrayList<>())
-                                .build()
-                );
-
                 List<PackingUnitSerialItem> unitSerials = productUnitRepository.findByCartonIdOrderByCreatedAtAsc(carton.getId()).stream()
                         .map(u -> PackingUnitSerialItem.builder().unitSerial(u.getUnitSerial()).build())
                         .toList();
 
+                ProductPackingManifestResponse current = grouped.computeIfAbsent(carton.getProductId(), id ->
+                        ProductPackingManifestResponse.builder()
+                                .productId(id)
+                                .productName(productRepository.findById(id).map(Product::getName).orElse("Unknown"))
+                                .cartons(new java.util.ArrayList<>())
+                                .build()
+                );
+
+                String status = (carton.getStatus() != null) ? carton.getStatus() : "IN_STOCK";
+                String ownerName = ownerNameCache.computeIfAbsent(carton.getOwnerId(), this::fetchOwnerName);
+
                 current.getCartons().add(PalletBulkCartonResult.builder()
                         .cartonCode(carton.getCartonCode())
+                        .ownerId(carton.getOwnerId())
+                        .ownerName(ownerName)
+                        .status(status)
                         .units(unitSerials)
                         .build());
             }
-
-            return List.copyOf(grouped.values());
+            return new java.util.ArrayList<>(grouped.values());
         } catch (Exception e) {
             throw new RuntimeException("Lỗi lấy manifest đóng gói: " + e.getMessage());
         }
+    }
+
+    private String fetchOwnerName(String actorId) {
+        if (actorId == null || actorId.isBlank()) return "Unknown";
+        try {
+            String url = identityServiceUrl + "/api/v1/users/directory/by-id/" + actorId;
+            vn.edu.kma.common.dto.response.ApiResponse<?> response = restTemplate.getForObject(url, vn.edu.kma.common.dto.response.ApiResponse.class);
+            if (response != null && response.getResult() != null) {
+                java.util.Map<?, ?> result = (java.util.Map<?, ?>) response.getResult();
+                Object fullNameObj = result.get("fullName");
+                if (fullNameObj != null && !fullNameObj.toString().isBlank()) {
+                    return fullNameObj.toString();
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return "Unknown";
     }
 
     private String resolveProductName(String productId) {

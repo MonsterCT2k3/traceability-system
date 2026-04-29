@@ -57,6 +57,8 @@ public class Pallet {
     @Column(nullable = false)
     private String ownerId;
 
+    private String manufacturerId; // ID nhà sản xuất ban đầu (không đổi)
+
     /**
      * bytes32 hex dùng để gọi recordTransformedBatch + ownership-change trên chain.
      */

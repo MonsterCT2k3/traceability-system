@@ -43,6 +43,11 @@ public class Carton {
     @Column(nullable = false)
     private String ownerId;
 
+    private String manufacturerId; // ID nhà sản xuất ban đầu (không đổi)
+
+    @Builder.Default
+    private String status = "IN_STOCK"; // IN_STOCK, SHIPPING, DELIVERED
+
     @Column(columnDefinition = "TEXT")
     private String note;
 

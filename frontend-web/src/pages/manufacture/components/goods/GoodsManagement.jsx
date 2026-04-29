@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Col, Divider, Row, Statistic, Table, Typography } from 'antd';
+import { Card, Col, Divider, Row, Statistic, Table, Typography, Tag } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import JSZip from 'jszip';
@@ -271,22 +271,53 @@ const GoodsManagement = () => {
                 size="small"
                 pagination={false}
                 columns={[
-                  {
-                    title: 'Mã thùng',
-                    dataIndex: 'cartonCode',
-                    key: 'cartonCode',
-                    width: 180,
-                    render: (v, carton) => (
-                      <div>
-                        <strong>{v}</strong>
-                        <div style={{ marginTop: 8 }}>
-                          <a onClick={() => downloadCartonLabelsZip({ cartonCode: carton.cartonCode, units: carton.units || [] })}>
-                            Tải tất cả tem (.zip)
-                          </a>
+                    {
+                      title: 'Mã thùng',
+                      dataIndex: 'cartonCode',
+                      key: 'cartonCode',
+                      width: 180,
+                      render: (v, carton) => (
+                        <div>
+                          <strong>{v}</strong>
+                          <div style={{ marginTop: 8 }}>
+                            <a onClick={() => downloadCartonLabelsZip({ cartonCode: carton.cartonCode, units: carton.units || [] })}>
+                              Tải tất cả tem (.zip)
+                            </a>
+                          </div>
                         </div>
-                      </div>
-                    ),
-                  },
+                      ),
+                    },
+                    {
+                      title: 'Trạng thái',
+                      dataIndex: 'status',
+                      key: 'status',
+                      width: 150,
+                      render: (status) => {
+                        let color = 'blue';
+                        let text = 'Trong kho';
+                        if (status === 'SHIPPING') {
+                          color = 'orange';
+                          text = 'Đang vận chuyển';
+                        } else if (status === 'DELIVERED') {
+                          color = 'green';
+                          text = 'Đã vận chuyển';
+                        }
+                        return <Tag color={color}>{text}</Tag>;
+                      },
+                    },
+                    {
+                      title: 'Người sở hữu hiện tại',
+                      dataIndex: 'ownerName',
+                      key: 'ownerName',
+                      width: 200,
+                      render: (name, record) => (
+                        <div style={{ wordBreak: 'break-all' }}>
+                          <Text type={record.status === 'IN_STOCK' ? 'secondary' : 'warning'} strong>
+                            {name || 'Chưa xác định'}
+                          </Text>
+                        </div>
+                      ),
+                    },
                   {
                     title: 'Danh sách serial sản phẩm',
                     key: 'units',

@@ -13,5 +13,8 @@ import java.util.List;
 @AllArgsConstructor
 public class PalletBulkCartonResult {
     private String cartonCode;
+    private String ownerId;
+    private String ownerName;
+    private String status; // IN_STOCK, DELIVERED
     private List<PackingUnitSerialItem> units;
 }

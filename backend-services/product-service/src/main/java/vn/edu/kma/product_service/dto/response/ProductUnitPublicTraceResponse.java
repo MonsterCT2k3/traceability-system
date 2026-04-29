@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.List;
 
 /**
  * Dữ liệu truy xuất công khai (không lộ secret, không lộ ownerId).
@@ -31,4 +32,7 @@ public class ProductUnitPublicTraceResponse {
 
     /** Số lần quét truy xuất công khai (theo id/serial). */
     private Integer scanCount;
+
+    /** Lịch sử chuỗi cung ứng (Timeline) */
+    private List<TraceHistoryEvent> historyEvents;
 }

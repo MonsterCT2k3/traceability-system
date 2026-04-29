@@ -113,6 +113,7 @@ public class PalletServiceImpl implements PalletService {
                     .schemaVersion(SCHEMA_VERSION)
                     .actorId(processorId)
                     .ownerId(processorId)
+                    .manufacturerId(processorId)
                     .chainBatchIdHex(chainBatchIdHex)
                     .dataHashHex(dataHashHex)
                     .anchorTxHash(txHash)

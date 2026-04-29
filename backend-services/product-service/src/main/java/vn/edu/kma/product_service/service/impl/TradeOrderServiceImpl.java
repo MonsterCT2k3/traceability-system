@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -22,16 +23,25 @@ import vn.edu.kma.product_service.dto.request.TradeOrderCreateRequest;
 import vn.edu.kma.product_service.dto.request.TradeOrderLineRequest;
 import vn.edu.kma.product_service.dto.response.TradeOrderLineResponse;
 import vn.edu.kma.product_service.dto.response.TradeOrderResponse;
+import vn.edu.kma.product_service.entity.Carton;
+import vn.edu.kma.product_service.entity.Pallet;
 import vn.edu.kma.product_service.entity.Product;
+import vn.edu.kma.product_service.entity.ProductUnit;
 import vn.edu.kma.product_service.entity.RawBatch;
 import vn.edu.kma.product_service.entity.TradeOrder;
 import vn.edu.kma.product_service.entity.TradeOrderLine;
+import vn.edu.kma.product_service.entity.TransferRecord;
+import vn.edu.kma.product_service.repository.CartonRepository;
+import vn.edu.kma.product_service.repository.PalletRepository;
 import vn.edu.kma.product_service.repository.ProductRepository;
+import vn.edu.kma.product_service.repository.ProductUnitRepository;
 import vn.edu.kma.product_service.repository.RawBatchRepository;
 import vn.edu.kma.product_service.repository.TradeOrderRepository;
+import vn.edu.kma.product_service.repository.TransferRecordRepository;
 import vn.edu.kma.product_service.service.TradeOrderService;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,6 +58,10 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     private final TradeOrderRepository tradeOrderRepository;
     private final RawBatchRepository rawBatchRepository;
     private final ProductRepository productRepository;
+    private final CartonRepository cartonRepository;
+    private final ProductUnitRepository productUnitRepository;
+    private final PalletRepository palletRepository;
+    private final TransferRecordRepository transferRecordRepository;
     private final RestTemplate restTemplate;
 
     @Value("${spring.url.blockchain-service}")
@@ -187,6 +201,9 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 throw new RuntimeException("Đơn không ở trạng thái chờ xử lý");
             }
             order.setStatus(TradeOrderStatus.ACCEPTED);
+            if (order.getOrderType() == OrderType.RETAILER_TO_MANUFACTURER) {
+                reserveCartonsForRetailOrder(order);
+            }
             return toResponse(tradeOrderRepository.save(order));
         } catch (RuntimeException e) {
             throw e;
@@ -320,6 +337,8 @@ public class TradeOrderServiceImpl implements TradeOrderService {
 
             if (order.getOrderType() == OrderType.MANUFACTURER_TO_SUPPLIER) {
                 finalizeM2SDelivery(order);
+            } else if (order.getOrderType() == OrderType.RETAILER_TO_MANUFACTURER) {
+                finalizeRetailDelivery(order);
             } else {
                 order.setDeliveryChainStatus("SKIPPED");
                 order.setDeliveryChainError(null);
@@ -363,6 +382,67 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 lastTx = tx;
             } else {
                 err.append("Lô ").append(batch.getRawBatchCode()).append(": không nhận được tx. ");
+            }
+        }
+
+        if (err.length() > 0) {
+            order.setDeliveryChainStatus("PARTIAL_OR_FAILED");
+            order.setDeliveryChainError(err.toString().trim());
+        } else {
+            order.setDeliveryChainStatus("OK");
+            order.setDeliveryChainError(null);
+        }
+        order.setDeliveryTxHash(lastTx);
+    }
+
+    private void finalizeRetailDelivery(TradeOrder order) {
+        String sellerId = order.getSellerId();
+        String buyerId = order.getBuyerId();
+        String lastTx = null;
+        StringBuilder err = new StringBuilder();
+
+        for (TradeOrderLine line : order.getLines()) {
+            String productId = line.getProductId();
+            Integer qtyCartons = line.getQuantityCartons();
+            if (productId == null || qtyCartons == null || qtyCartons < 1) continue;
+
+            // Tìm các thùng hàng đang ở trạng thái SHIPPING của người bán
+            List<Carton> cartons = cartonRepository.findAvailableForDelivery(
+                    productId, sellerId, PageRequest.of(0, qtyCartons));
+
+            if (cartons.size() < qtyCartons) {
+                // Fallback nếu vì lý do nào đó status chưa chuyển sang SHIPPING
+                cartons = cartonRepository.findAvailableForShipping(
+                        productId, sellerId, PageRequest.of(0, qtyCartons));
+            }
+
+            if (cartons.size() < qtyCartons) {
+                err.append("Sản phẩm ").append(productId).append(": không đủ tồn kho hoặc hàng chưa sẵn sàng vận chuyển (cần ").append(qtyCartons)
+                        .append(", còn ").append(cartons.size()).append("). ");
+            }
+
+            for (Carton carton : cartons) {
+                // 1. Cập nhật owner và status cho Carton
+                carton.setOwnerId(buyerId);
+                carton.setStatus("DELIVERED");
+                cartonRepository.save(carton);
+
+                // 2. Tạo TransferRecord cho Carton để hiện lên Timeline (Chỉ lưu DB, KHÔNG gán mã Hash giả)
+                TransferRecord tr = TransferRecord.builder()
+                        .targetType("CARTON")
+                        .targetId(carton.getId())
+                        .fromUserId(sellerId)
+                        .toUserId(buyerId)
+                        .status("ACCEPTED")
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .blockchainStatus("SKIPPED")
+                        .build();
+                transferRecordRepository.save(tr);
+
+                // 3. Cập nhật owner cho tất cả ProductUnit trong thùng
+                // Cập nhật owner và status cho toàn bộ Unit bên trong thùng (Bulk Update, siêu nhanh, không lưu TransferRecord)
+                productUnitRepository.updateOwnerAndStatusByCartonId(carton.getId(), buyerId, "DELIVERED");
             }
         }
 
@@ -549,5 +629,29 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         SignedJWT signedJWT = SignedJWT.parse(token);
         String raw = signedJWT.getJWTClaimsSet().getStringClaim("role");
         return UserRole.fromClaimOrDefault(raw);
+    }
+    private void reserveCartonsForRetailOrder(TradeOrder order) {
+        String sellerId = order.getSellerId();
+        for (TradeOrderLine line : order.getLines()) {
+            String productId = line.getProductId();
+            Integer qty = line.getQuantityCartons();
+            if (productId == null || qty == null || qty < 1) continue;
+
+            // Tìm các thùng đang ở kho (IN_STOCK) để chuyển sang SHIPPING
+            List<Carton> cartons = cartonRepository.findAvailableForShipping(
+                    productId, sellerId, PageRequest.of(0, qty));
+            
+            if (cartons.size() < qty) {
+                throw new RuntimeException("Không đủ tồn kho cho sản phẩm " + productId + " (Cần " + qty + ", có " + cartons.size() + ")");
+            }
+
+            for (Carton carton : cartons) {
+                carton.setStatus("SHIPPING");
+                cartonRepository.save(carton);
+                
+                // Đồng bộ status cho toàn bộ unit bên trong thùng (Bulk Update)
+                productUnitRepository.updateStatusByCartonId(carton.getId(), "SHIPPING");
+            }
+        }
     }
 }

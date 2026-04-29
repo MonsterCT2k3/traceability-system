@@ -19,4 +19,7 @@ public interface TransferRecordRepository extends JpaRepository<TransferRecord, 
 
     // Legacy: Tìm yêu cầu chuyển giao đang chờ cho sản phẩm cụ thể
     Optional<TransferRecord> findByProductIdAndStatus(String productId, String status);
+
+    // Truy vấn toàn bộ lịch sử chuyển giao của một lô hàng/nguyên liệu cụ thể
+    List<TransferRecord> findByTargetTypeAndTargetIdOrderByCreatedAtAsc(String targetType, String targetId);
 }

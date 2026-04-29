@@ -10,12 +10,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.TransferInitRequest;
+import vn.edu.kma.product_service.entity.Carton;
 import vn.edu.kma.product_service.entity.Pallet;
+import vn.edu.kma.product_service.entity.ProductUnit;
 import vn.edu.kma.product_service.entity.RawBatch;
 import vn.edu.kma.product_service.entity.TransferRecord;
 import vn.edu.kma.product_service.repository.PalletRepository;
 import vn.edu.kma.product_service.repository.RawBatchRepository;
 import vn.edu.kma.product_service.repository.TransferRecordRepository;
+import vn.edu.kma.product_service.repository.CartonRepository;
+import vn.edu.kma.product_service.repository.ProductUnitRepository;
 import vn.edu.kma.product_service.service.TransferService;
 
 import java.time.LocalDateTime;
@@ -30,6 +34,8 @@ public class TransferServiceImpl implements TransferService {
     private final TransferRecordRepository transferRecordRepository;
     private final PalletRepository palletRepository;
     private final RawBatchRepository rawBatchRepository;
+    private final CartonRepository cartonRepository;
+    private final ProductUnitRepository productUnitRepository;
     private final RestTemplate restTemplate;
 
     @Value("${spring.url.blockchain-service}")
@@ -66,13 +72,25 @@ public class TransferServiceImpl implements TransferService {
                 }
                 builder.palletId(pallet.getId());
                 builder.productId(pallet.getProductId());
-            } else {
+            } else if ("RAW_BATCH".equals(targetType)) {
                 RawBatch rawBatch = rawBatchRepository.findById(targetId)
                         .orElseThrow(() -> new RuntimeException("RawBatch không tồn tại"));
                 if (!currentUserId.equals(rawBatch.getOwnerId())) {
                     throw new RuntimeException("Bạn không phải owner hiện tại của raw batch");
                 }
                 builder.rawBatchId(rawBatch.getId());
+            } else if ("CARTON".equals(targetType)) {
+                Carton carton = cartonRepository.findById(targetId)
+                        .orElseThrow(() -> new RuntimeException("Carton không tồn tại"));
+                if (!currentUserId.equals(carton.getOwnerId())) {
+                    throw new RuntimeException("Bạn không phải owner hiện tại của thùng hàng");
+                }
+            } else if ("UNIT".equals(targetType)) {
+                ProductUnit unit = productUnitRepository.findById(targetId)
+                        .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
+                if (!currentUserId.equals(unit.getOwnerId())) {
+                    throw new RuntimeException("Bạn không phải owner hiện tại của sản phẩm");
+                }
             }
 
             return transferRecordRepository.save(builder.build());
@@ -110,6 +128,23 @@ public class TransferServiceImpl implements TransferService {
                     rawBatch.setOwnerId(transfer.getToUserId());
                     rawBatchRepository.save(rawBatch);
                     batchIdHex = rawBatch.getBatchIdHex();
+                } else if ("CARTON".equals(transfer.getTargetType())) {
+                    Carton carton = cartonRepository.findById(transfer.getTargetId())
+                            .orElseThrow(() -> new RuntimeException("Thùng hàng không tồn tại"));
+                    carton.setOwnerId(transfer.getToUserId());
+                    cartonRepository.save(carton);
+                    // Lấy batchId của Pallet chứa thùng này để ghi log blockchain (do Carton/Unit chung batch audit với Pallet)
+                    Pallet pallet = palletRepository.findById(carton.getPalletId())
+                            .orElseThrow(() -> new RuntimeException("Pallet của thùng hàng không tồn tại"));
+                    batchIdHex = pallet.getChainBatchIdHex();
+                } else if ("UNIT".equals(transfer.getTargetType())) {
+                    ProductUnit unit = productUnitRepository.findById(transfer.getTargetId())
+                            .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
+                    unit.setOwnerId(transfer.getToUserId());
+                    productUnitRepository.save(unit);
+                    Pallet pallet = palletRepository.findById(unit.getPalletId())
+                            .orElseThrow(() -> new RuntimeException("Pallet của sản phẩm không tồn tại"));
+                    batchIdHex = pallet.getChainBatchIdHex();
                 } else {
                     throw new RuntimeException("targetType không hợp lệ: " + transfer.getTargetType());
                 }
@@ -184,8 +219,8 @@ public class TransferServiceImpl implements TransferService {
 
     private static String normalizeTargetType(String raw) {
         String t = requireNonBlank(raw, "Thiếu targetType").toUpperCase();
-        if (!"PALLET".equals(t) && !"RAW_BATCH".equals(t)) {
-            throw new RuntimeException("targetType phải là PALLET hoặc RAW_BATCH");
+        if (!"PALLET".equals(t) && !"RAW_BATCH".equals(t) && !"CARTON".equals(t) && !"UNIT".equals(t)) {
+            throw new RuntimeException("targetType phải là PALLET, RAW_BATCH, CARTON hoặc UNIT");
         }
         return t;
     }
