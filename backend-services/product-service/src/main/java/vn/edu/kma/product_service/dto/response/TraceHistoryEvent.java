@@ -13,10 +13,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class TraceHistoryEvent {
     private String eventType; // RAW_BATCH_CREATED, PALLET_MANUFACTURED, TRANSFER_ACCEPTED
-    private String eventDescription; 
+    private String eventDescription;
     private LocalDateTime timestamp;
     private String actorId; // ID người thực hiện / người nhận (Retailer, Wholesaler)
     private String actorName; // Tên hiển thị của người/doanh nghiệp
-    private String location; 
+    private String location;
     private String txHash; // Nếu có ghi nhận trên blockchain
+    private Boolean isVerifiedOnChain; // true: đã đối chiếu khớp với blockchain, false: sai lệch, null: chưa kiểm tra
 }

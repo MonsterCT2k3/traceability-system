@@ -13,6 +13,11 @@ public interface ProductUnitService {
     ProductUnitPublicTraceResponse getPublicTraceByUnitSerial(String unitSerial);
 
     /**
+     * Xác thực lịch sử truy xuất với Blockchain.
+     */
+    ProductUnitPublicTraceResponse verifyPublicTrace(String unitSerial);
+
+    /**
      * Nội dung gắn trong QR truy xuất unit: chỉ {@code unitId} (UUID) để app quét rồi gọi {@code GET /units/{id}/trace}.
      * Không tăng scanCount khi chỉ tải ảnh QR.
      */

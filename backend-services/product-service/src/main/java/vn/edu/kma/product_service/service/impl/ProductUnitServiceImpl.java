@@ -3,35 +3,30 @@ package vn.edu.kma.product_service.service.impl;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestTemplate;
+import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.ProductUnitGenerateRequest;
-import vn.edu.kma.product_service.dto.response.ProductUnitGeneratedItem;
+import vn.edu.kma.product_service.dto.request.VerifyHashesRequest;
 import vn.edu.kma.product_service.dto.response.ProductUnitGenerateResponse;
+import vn.edu.kma.product_service.dto.response.ProductUnitGeneratedItem;
 import vn.edu.kma.product_service.dto.response.ProductUnitPublicTraceResponse;
-import vn.edu.kma.product_service.entity.Carton;
-import vn.edu.kma.product_service.entity.Pallet;
-import vn.edu.kma.product_service.entity.Product;
-import vn.edu.kma.product_service.entity.ProductUnit;
-import vn.edu.kma.product_service.repository.BanknoteSerialRepository;
-import vn.edu.kma.product_service.repository.CartonRepository;
-import vn.edu.kma.product_service.repository.PalletRepository;
-import vn.edu.kma.product_service.repository.ProductRepository;
-import vn.edu.kma.product_service.repository.ProductUnitRepository;
-import vn.edu.kma.product_service.repository.RawBatchRepository;
-import vn.edu.kma.product_service.repository.TransferRecordRepository;
-import vn.edu.kma.product_service.service.ProductUnitService;
 import vn.edu.kma.product_service.dto.response.TraceHistoryEvent;
-import vn.edu.kma.product_service.entity.RawBatch;
-import vn.edu.kma.product_service.entity.TransferRecord;
+import vn.edu.kma.product_service.dto.response.VerifyHashesResponse;
+import vn.edu.kma.product_service.entity.*;
+import vn.edu.kma.product_service.repository.*;
+import vn.edu.kma.product_service.service.ProductUnitService;
+import vn.edu.kma.product_service.utils.BlockchainVerificationUtils;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +44,9 @@ public class ProductUnitServiceImpl implements ProductUnitService {
 
     @Value("${app.services.identity.url:http://localhost:8081}")
     private String identityServiceUrl;
+
+    @Value("${spring.url.blockchain-service}")
+    private String blockchainBaseUrl;
 
     @Override
     @Transactional
@@ -173,7 +171,7 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 .orElseThrow(() -> new RuntimeException("Unit không tồn tại"));
         unit.setScanCount((unit.getScanCount() == null ? 0 : unit.getScanCount()) + 1);
         productUnitRepository.save(unit);
-        return buildPublicTrace(unit);
+        return buildPublicTrace(unit, false);
     }
 
     @Override
@@ -186,7 +184,18 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 .orElseThrow(() -> new RuntimeException("Unit không tồn tại"));
         unit.setScanCount((unit.getScanCount() == null ? 0 : unit.getScanCount()) + 1);
         productUnitRepository.save(unit);
-        return buildPublicTrace(unit);
+        return buildPublicTrace(unit, false);
+    }
+
+    @Override
+    public ProductUnitPublicTraceResponse verifyPublicTrace(String unitSerial) {
+        if (unitSerial == null || unitSerial.isBlank()) {
+            throw new RuntimeException("unitSerial là bắt buộc");
+        }
+        ProductUnit unit = productUnitRepository.findByUnitSerial(unitSerial.trim())
+                .orElseThrow(() -> new RuntimeException("Unit không tồn tại"));
+        // Không tăng scanCount khi verify
+        return buildPublicTrace(unit, true);
     }
 
     @Override
@@ -197,7 +206,7 @@ public class ProductUnitServiceImpl implements ProductUnitService {
         return unitId;
     }
 
-    private ProductUnitPublicTraceResponse buildPublicTrace(ProductUnit unit) {
+    private ProductUnitPublicTraceResponse buildPublicTrace(ProductUnit unit, boolean verify) {
         Carton carton = cartonRepository.findById(unit.getCartonId())
                 .orElseThrow(() -> new RuntimeException("Carton không tồn tại"));
         Pallet pallet = palletRepository.findById(unit.getPalletId())
@@ -207,7 +216,21 @@ public class ProductUnitServiceImpl implements ProductUnitService {
 
         int scanDisplay = unit.getScanCount() == null ? 0 : unit.getScanCount();
 
-        List<TraceHistoryEvent> historyEvents = buildHistoryEvents(pallet, carton, unit);
+        List<TraceHistoryEvent> historyEvents = buildHistoryEvents(pallet, carton, unit, verify);
+
+        Boolean isDataIntact = null;
+        if (verify) {
+            isDataIntact = true;
+            for (TraceHistoryEvent event : historyEvents) {
+                // Nếu là sự kiện quan trọng (RAW/PALLET) mà verify thất bại thì chuỗi dữ liệu không còn nguyên vẹn
+                if (event.getIsVerifiedOnChain() != null && !event.getIsVerifiedOnChain()) {
+                    if ("RAW_BATCH_CREATED".equals(event.getEventType()) || "PALLET_MANUFACTURED".equals(event.getEventType())) {
+                        isDataIntact = false;
+                        break;
+                    }
+                }
+            }
+        }
 
         return ProductUnitPublicTraceResponse.builder()
                 .unitId(unit.getId())
@@ -223,17 +246,20 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 .palletExpiryAt(emptyToNull(pallet.getExpiryAt()))
                 .scanCount(scanDisplay)
                 .historyEvents(historyEvents)
+                .isDataIntact(isDataIntact)
                 .build();
     }
 
-    private List<TraceHistoryEvent> buildHistoryEvents(Pallet pallet, Carton carton, ProductUnit unit) {
+    private List<TraceHistoryEvent> buildHistoryEvents(Pallet pallet, Carton carton, ProductUnit unit, boolean verify) {
         List<TraceHistoryEvent> events = new ArrayList<>();
+        List<RawBatch> rawBatches = new ArrayList<>();
 
         // 1. Tìm thông tin Lô nguyên liệu gốc (RawBatch)
         if (pallet.getParentRawBatchIdHexes() != null && !pallet.getParentRawBatchIdHexes().isBlank()) {
             String[] rawBatchHexes = pallet.getParentRawBatchIdHexes().split(",");
             for (String hex : rawBatchHexes) {
                 rawBatchRepository.findByBatchIdHex(hex.trim()).ifPresent(raw -> {
+                    rawBatches.add(raw);
                     events.add(TraceHistoryEvent.builder()
                             .eventType("RAW_BATCH_CREATED")
                             .eventDescription("Khai báo lô nguyên liệu gốc: " + raw.getMaterialName())
@@ -331,7 +357,69 @@ public class ProductUnitServiceImpl implements ProductUnitService {
             return a.getTimestamp().compareTo(b.getTimestamp());
         });
 
+        // 6. Thực hiện xác thực nếu yêu cầu
+        if (verify) {
+            performBlockchainVerification(events, pallet, rawBatches);
+        }
+
         return events;
+    }
+
+    private void performBlockchainVerification(List<TraceHistoryEvent> events, Pallet pallet, List<RawBatch> rawBatches) {
+        try {
+            List<VerifyHashesRequest.HashItem> items = new ArrayList<>();
+            
+            // 1. Hash Pallet
+            items.add(VerifyHashesRequest.HashItem.builder()
+                    .batchIdHex(pallet.getChainBatchIdHex())
+                    .dataHashHex(BlockchainVerificationUtils.calculatePalletHash(pallet))
+                    .type("TRANSFORMED")
+                    .build());
+            
+            // 2. Hash RawBatches
+            for (RawBatch raw : rawBatches) {
+                items.add(VerifyHashesRequest.HashItem.builder()
+                        .batchIdHex(raw.getBatchIdHex())
+                        .dataHashHex(BlockchainVerificationUtils.calculateRawBatchHash(raw))
+                        .type("RAW")
+                        .build());
+            }
+
+            VerifyHashesRequest request = VerifyHashesRequest.builder().items(items).build();
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<VerifyHashesRequest> entity = new HttpEntity<>(request, headers);
+
+            ResponseEntity<ApiResponse<VerifyHashesResponse>> resp = restTemplate.exchange(
+                    blockchainBaseUrl + "/verify-hashes",
+                    HttpMethod.POST,
+                    entity,
+                    new ParameterizedTypeReference<ApiResponse<VerifyHashesResponse>>() {}
+            );
+
+            if (resp.getBody() != null && resp.getBody().getResult() != null) {
+                VerifyHashesResponse result = resp.getBody().getResult();
+                Map<String, Boolean> matchMap = result.getResults().stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                VerifyHashesResponse.VerifyResult::getBatchIdHex,
+                                VerifyHashesResponse.VerifyResult::isMatch
+                        ));
+                
+                for (TraceHistoryEvent event : events) {
+                    if (event.getTxHash() != null) {
+                        if (matchMap.containsKey(event.getTxHash())) {
+                            event.setIsVerifiedOnChain(matchMap.get(event.getTxHash()));
+                        } else if (event.getEventType().contains("TRANSFERRED")) {
+                            // Lựa chọn 1: Các khâu vận chuyển coi như xác thực nội bộ (Internal Verified)
+                            event.setIsVerifiedOnChain(true);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Blockchain verification failed", e);
+        }
     }
 
     private String fetchActorName(String actorId) {

@@ -1,5 +1,5 @@
-package vn.edu.kma.blockchain_service.service;
-
+import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
+import vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse;
 import vn.edu.kma.blockchain_service.dto.response.BatchRecordResponse;
 import vn.edu.kma.blockchain_service.dto.response.TransformedBatchRecordResponse;
 
@@ -22,6 +22,12 @@ public interface TraceabilityService {
      * Ghi audit chuyển quyền (userId) lên chain — emit OwnershipChanged, trả về txHash.
      */
     String logOwnershipChange(String batchIdHex, String fromUserId, String toUserId) throws Exception;
+    
+    /**
+     * Xác thực danh sách các mã Hash so với Blockchain.
+     */
+    VerifyHashesResponse verifyHashes(VerifyHashesRequest request) throws Exception;
+
     // Đọc thông tin lô gốc
     BatchRecordResponse getBatchRecord(String batchIdHex) throws Exception;
     // Đọc thông tin lô chế biến / Pallet

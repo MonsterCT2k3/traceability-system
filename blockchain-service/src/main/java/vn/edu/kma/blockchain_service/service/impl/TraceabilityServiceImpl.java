@@ -134,6 +134,49 @@ public class TraceabilityServiceImpl implements TraceabilityService {
     }
 
     @Override
+    public vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse verifyHashes(vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest request) throws Exception {
+        java.util.List<vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse.VerifyResult> results = new java.util.ArrayList<>();
+        
+        Credentials credentials = Credentials.create(privateKey);
+        Traceability contract = Traceability.load(
+                contractAddress, web3j, credentials, new org.web3j.tx.gas.DefaultGasProvider()
+        );
+
+        for (vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest.HashItem item : request.getItems()) {
+            boolean isMatch = false;
+            try {
+                byte[] batchIdBytes = hexToBytes32(item.getBatchIdHex());
+                String onChainHash = null;
+
+                if ("RAW".equalsIgnoreCase(item.getType())) {
+                    var tuple = contract.getBatchRecord(batchIdBytes).send();
+                    onChainHash = bytes32ToHex(tuple.component1());
+                } else if ("TRANSFORMED".equalsIgnoreCase(item.getType())) {
+                    var tuple = contract.getTransformedBatchRecord(batchIdBytes).send();
+                    onChainHash = bytes32ToHex(tuple.component1());
+                }
+
+                if (onChainHash != null) {
+                    String inputHash = item.getDataHashHex();
+                    if (inputHash != null) {
+                        if (!inputHash.startsWith("0x")) inputHash = "0x" + inputHash;
+                        isMatch = onChainHash.equalsIgnoreCase(inputHash);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error verifying batch {}: {}", item.getBatchIdHex(), e.getMessage());
+            }
+
+            results.add(vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse.VerifyResult.builder()
+                    .batchIdHex(item.getBatchIdHex())
+                    .isMatch(isMatch)
+                    .build());
+        }
+
+        return vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse.builder().results(results).build();
+    }
+
+    @Override
     public BatchRecordResponse getBatchRecord(String batchIdHex) throws Exception {
         Credentials credentials = Credentials.create(privateKey);
         Traceability contract = Traceability.load(

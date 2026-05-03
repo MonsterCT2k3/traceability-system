@@ -35,4 +35,7 @@ public class ProductUnitPublicTraceResponse {
 
     /** Lịch sử chuỗi cung ứng (Timeline) */
     private List<TraceHistoryEvent> historyEvents;
+
+    /** Cờ tổng thể: true nếu toàn bộ lịch sử (có hash) khớp với blockchain */
+    private Boolean isDataIntact;
 }

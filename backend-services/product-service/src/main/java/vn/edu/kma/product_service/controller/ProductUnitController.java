@@ -105,4 +105,35 @@ public class ProductUnitController {
         }
     }
 
+    @GetMapping("/trace/by-serial/verify")
+    public ResponseEntity<ApiResponse<ProductUnitPublicTraceResponse>> traceBySerialVerify(
+            @RequestParam("serial") String serial
+    ) {
+        try {
+            ProductUnitPublicTraceResponse result = productUnitService.verifyPublicTrace(serial);
+            return ResponseEntity.ok(
+                    ApiResponse.<ProductUnitPublicTraceResponse>builder()
+                            .code(200)
+                            .message("Xác thực thành công")
+                            .result(result)
+                            .build()
+            );
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("không tồn tại")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        ApiResponse.<ProductUnitPublicTraceResponse>builder()
+                                .code(404)
+                                .message(e.getMessage())
+                                .build()
+                );
+            }
+            log.error("traceBySerialVerify failed", e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.<ProductUnitPublicTraceResponse>builder()
+                            .code(500)
+                            .message("Lỗi xác thực: " + e.getMessage())
+                            .build()
+            );
+        }
+    }
 }

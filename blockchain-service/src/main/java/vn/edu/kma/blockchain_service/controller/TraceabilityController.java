@@ -3,6 +3,8 @@ package vn.edu.kma.blockchain_service.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
+import vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse;
 import vn.edu.kma.blockchain_service.dto.response.BatchRecordResponse;
 import vn.edu.kma.blockchain_service.dto.response.TransformedBatchRecordResponse;
 import vn.edu.kma.blockchain_service.service.TraceabilityService;
@@ -99,6 +101,26 @@ public class TraceabilityController {
             return ResponseEntity.internalServerError().body(ApiResponse.<String>builder()
                     .code(500)
                     .message("Lỗi: " + e.getMessage())
+                    .build());
+        }
+    }
+
+    /**
+     * Xác thực danh sách mã Hash từ Database so với Blockchain.
+     */
+    @PostMapping("/verify-hashes")
+    public ResponseEntity<ApiResponse<VerifyHashesResponse>> verifyHashes(@RequestBody VerifyHashesRequest request) {
+        try {
+            VerifyHashesResponse response = traceabilityService.verifyHashes(request);
+            return ResponseEntity.ok(ApiResponse.<VerifyHashesResponse>builder()
+                    .code(200)
+                    .message("Xác thực hoàn tất")
+                    .result(response)
+                    .build());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.<VerifyHashesResponse>builder()
+                    .code(500)
+                    .message("Lỗi xác thực: " + e.getMessage())
                     .build());
         }
     }

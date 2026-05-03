@@ -5,8 +5,13 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart' as mlkit;
 
-import '../../../../../core/network/api_client.dart';
-import '../trace_result_page.dart';
+import 'package:frontend_mobile/core/network/api_client.dart';
+import 'package:frontend_mobile/injection_container.dart';
+import 'package:frontend_mobile/features/main/presentation/pages/trace_result_page.dart';
+import 'package:frontend_mobile/features/main/data/models/trace_model.dart';
+import 'package:frontend_mobile/features/main/presentation/bloc/trace/trace_bloc.dart';
+import 'package:frontend_mobile/features/main/presentation/bloc/trace/trace_event.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ScanTab extends StatefulWidget {
   const ScanTab({super.key});
@@ -47,14 +52,21 @@ class _ScanTabState extends State<ScanTab> {
 
     try {
       final responseData = await _traceByQrContent(raw);
-      final model = TraceViewModel.fromApi(Map<String, dynamic>.from(responseData));
+      final model = TraceModel.fromJson(Map<String, dynamic>.from(responseData));
       
       if (!mounted) return;
       setState(() => _busy = false);
       
       await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => TraceResultPage(trace: model)),
+        MaterialPageRoute(
+          builder: (context) => BlocProvider<TraceBloc>(
+            create: (context) => sl<TraceBloc>()
+              ..add(InitializeTraceWithData(model))
+              ..add(VerifyTraceBlockchain(model.unitSerial)),
+            child: TraceResultPage(initialTrace: model),
+          ),
+        ),
       );
       
       if (mounted) {

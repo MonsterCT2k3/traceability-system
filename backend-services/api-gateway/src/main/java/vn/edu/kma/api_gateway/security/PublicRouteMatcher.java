@@ -58,6 +58,7 @@ public final class PublicRouteMatcher {
                 || path.matches(".*/api/v1/units/[^/]+/trace$")
                 || path.matches(".*/api/v1/units/[^/]+/qr$")
                 || path.matches(".*/api/v1/units/trace/by-serial$")
+                || path.matches(".*/api/v1/units/trace/by-serial/verify$")
                 || path.contains("/api/v1/histories/product/")
                 || path.matches(".*/api/v1/blockchain/batch/[^/]+(/exists)?$")
                 || path.matches(".*/api/v1/blockchain/transformed-batch/[^/]+(/exists)?$");
