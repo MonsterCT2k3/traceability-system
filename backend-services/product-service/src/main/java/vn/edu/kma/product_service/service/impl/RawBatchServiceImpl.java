@@ -372,6 +372,19 @@ public class RawBatchServiceImpl implements RawBatchService {
         }
     }
 
+    @Override
+    public RawBatchResponse getById(String id, String token) {
+        try {
+            extractUserIdFromToken(token); // Verify token
+            RawBatch batch = rawBatchRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy lô nguyên liệu"));
+            return toRawBatchResponse(batch);
+        } catch (Exception e) {
+            log.error("getById failed", e);
+            throw new RuntimeException("Lỗi lấy thông tin lô: " + e.getMessage());
+        }
+    }
+
     private static RawBatchResponse toRawBatchResponse(RawBatch batch) {
         return RawBatchResponse.builder()
                 .id(batch.getId())

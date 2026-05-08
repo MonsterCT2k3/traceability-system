@@ -1,3 +1,5 @@
+package vn.edu.kma.blockchain_service.service;
+
 import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
 import vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse;
 import vn.edu.kma.blockchain_service.dto.response.BatchRecordResponse;

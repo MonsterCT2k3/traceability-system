@@ -7,6 +7,9 @@ import {
   InboxOutlined,
   SwapOutlined,
   ShoppingCartOutlined,
+  ShopOutlined,
+  BuildOutlined,
+  DatabaseOutlined,
   LogoutOutlined,
   UserOutlined,
   MenuFoldOutlined,
@@ -21,6 +24,7 @@ import ManufactureOrderManagement from './components/orders/ManufactureOrderMana
 import ManufactureRetailOrdersManagement from './components/orders/ManufactureRetailOrdersManagement';
 import ProductManagement from './components/products/ProductManagement';
 import ManufactureProductionManagement from './components/production/ManufactureProductionManagement';
+import ManufacturePackagingManagement from './components/production/ManufacturePackagingManagement';
 import GoodsManagement from './components/goods/GoodsManagement';
 
 const { Header, Sider, Content } = Layout;
@@ -458,19 +462,8 @@ const RawBatchManagement = () => {
   );
 };
 
-const PackagingManagement = () => (
-  <div>
-    <Title level={4}>Quản lý Đóng gói</Title>
-    <Text>Giao diện đóng gói thùng (Carton) và Pallet.</Text>
-  </div>
-);
 
-const TransferManagement = () => (
-  <div>
-    <Title level={4}>Quản lý Vận chuyển</Title>
-    <Text>Giao diện xuất/nhập kho và chuyển giao quyền sở hữu (Transfer).</Text>
-  </div>
-);
+
 // -----------------------------------------------------------------
 
 const ManufactureDashboard = () => {
@@ -495,6 +488,17 @@ const ManufactureDashboard = () => {
     }
   }
 
+  const { data: profile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const response = await api.get('/identity/api/v1/users/profile');
+      return response.data?.result;
+    },
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
+  });
+  const avatarUrl = profile?.avatarUrl;
+
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
@@ -516,7 +520,7 @@ const ManufactureDashboard = () => {
     },
     {
       key: 'orders',
-      icon: <ShoppingCartOutlined />,
+      icon: <ShopOutlined />,
       label: 'Đặt hàng NCC',
     },
     {
@@ -531,7 +535,7 @@ const ManufactureDashboard = () => {
     },
     {
       key: 'production',
-      icon: <InboxOutlined />,
+      icon: <BuildOutlined />,
       label: 'Sản xuất',
     },
     {
@@ -541,14 +545,9 @@ const ManufactureDashboard = () => {
     },
     {
       key: 'goods',
-      icon: <InboxOutlined />,
+      icon: <DatabaseOutlined />,
       label: 'Quản lý hàng hóa',
-    },
-    {
-      key: 'transfers',
-      icon: <SwapOutlined />,
-      label: 'Vận chuyển',
-    },
+    }
   ];
 
   // Render Component tương ứng với menu được chọn
@@ -560,9 +559,8 @@ const ManufactureDashboard = () => {
       case 'retail-orders': return <ManufactureRetailOrdersManagement />;
       case 'products': return <ProductManagement />;
       case 'production': return <ManufactureProductionManagement />;
-      case 'packaging': return <PackagingManagement />;
+      case 'packaging': return <ManufacturePackagingManagement />;
       case 'goods': return <GoodsManagement />;
-      case 'transfers': return <TransferManagement />;
       default: return <Overview />;
     }
   };
@@ -585,7 +583,19 @@ const ManufactureDashboard = () => {
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <>
+      <style>{`
+        ::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          background: transparent !important;
+        }
+        * {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
+        }
+      `}</style>
+      <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       <Sider trigger={null} collapsible collapsed={collapsed} theme="light">
         <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #f0f0f0' }}>
           <Title level={4} style={{ margin: 0, color: '#1677ff', transition: 'all 0.3s' }}>
@@ -601,7 +611,7 @@ const ManufactureDashboard = () => {
           style={{ borderRight: 0 }}
         />
       </Sider>
-      <Layout>
+      <Layout style={{ display: 'flex', flexDirection: 'column' }}>
         <Header
           style={{
             padding: '0 24px 0 0',
@@ -611,6 +621,7 @@ const ManufactureDashboard = () => {
             alignItems: 'center',
             boxShadow: '0 1px 4px rgba(0,21,41,.08)',
             zIndex: 1,
+            flexShrink: 0,
           }}
         >
           <Button
@@ -626,24 +637,29 @@ const ManufactureDashboard = () => {
           
           <Dropdown menu={{ items: userDropdownItems }} placement="bottomRight">
             <Space style={{ cursor: 'pointer' }}>
-              <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#1677ff' }} />
+              <Avatar src={avatarUrl} style={{ backgroundColor: '#1677ff' }}>
+                {!avatarUrl && (username ? username.charAt(0).toUpperCase() : <UserOutlined />)}
+              </Avatar>
               <Text strong>{username}</Text>
             </Space>
           </Dropdown>
         </Header>
         <Content
+          className="hide-scrollbar"
           style={{
             margin: '24px 16px',
             padding: 24,
-            minHeight: 280,
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
+            overflowY: 'auto',
+            flex: 1,
           }}
         >
           {renderContent()}
         </Content>
       </Layout>
     </Layout>
+    </>
   );
 };
 

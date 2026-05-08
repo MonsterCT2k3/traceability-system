@@ -1,22 +1,47 @@
 import React from 'react';
 import { Drawer, Descriptions, Table, Typography, Empty, Spin } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../../../lib/api';
 import UserDirectoryDisplay from '../../../../components/trade-order/UserDirectoryDisplay';
 import OrderStatusTag from '../../../manufacture/components/orders/OrderStatusTag';
 import { ORDER_TYPE } from '../../../manufacture/constants/tradeOrderConstants';
 
 const { Text } = Typography;
 
-const lineColumns = [
-  { title: '#', dataIndex: 'lineIndex', key: 'lineIndex', width: 48 },
-  { title: 'ID lô', dataIndex: 'targetRawBatchId', key: 'targetRawBatchId', ellipsis: true },
-  {
-    title: 'Số lượng đặt',
-    key: 'qty',
-    render: (_, r) => (r.quantityRequested != null ? `${r.quantityRequested} ${r.unit || ''}` : '—'),
-  },
-];
-
 const SellerOrderDetailDrawer = ({ open, loading, order, onClose }) => {
+  const isM2S = order?.orderType === ORDER_TYPE.MANUFACTURER_TO_SUPPLIER;
+
+  const RawBatchNameDisplay = ({ batchId }) => {
+    const { data: batch, isLoading } = useQuery({
+      queryKey: ['rawBatchDetail', batchId],
+      queryFn: async () => {
+        const res = await api.get(`/product/api/v1/raw-batches/${batchId}`);
+        return res.data?.result;
+      },
+      enabled: !!batchId,
+      staleTime: 5 * 60 * 1000,
+    });
+
+    if (isLoading) return <Text type="secondary" style={{ fontSize: 13 }}>Đang tải...</Text>;
+    if (!batch) return <Text type="secondary" style={{ fontSize: 13 }}>{batchId?.substring(0, 8)}...</Text>;
+    return <span>{batch.materialName}</span>;
+  };
+
+  const lineColumns = [
+    { title: '#', dataIndex: 'lineIndex', key: 'lineIndex', width: 48 },
+    { 
+      title: 'Tên lô hàng', 
+      dataIndex: 'targetRawBatchId', 
+      key: 'targetRawBatchId', 
+      render: (val) => <RawBatchNameDisplay batchId={val} />
+    },
+    {
+      title: 'Số lượng đặt',
+      key: 'qty',
+      render: (_, r) => (r.quantityRequested != null ? `${r.quantityRequested} ${r.unit || ''}` : '—'),
+    },
+  ];
+
   if (loading && !order) {
     return (
       <Drawer title="Chi tiết đơn" placement="right" width={640} open={open} onClose={onClose}>
@@ -34,8 +59,6 @@ const SellerOrderDetailDrawer = ({ open, loading, order, onClose }) => {
       </Drawer>
     );
   }
-
-  const isM2S = order.orderType === ORDER_TYPE.MANUFACTURER_TO_SUPPLIER;
 
   return (
     <Drawer title={`Đơn ${order.orderCode || ''}`} placement="right" width={640} open={open} onClose={onClose}>
@@ -55,17 +78,6 @@ const SellerOrderDetailDrawer = ({ open, loading, order, onClose }) => {
         <Descriptions.Item label="Tạo lúc">
           {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : '—'}
         </Descriptions.Item>
-        {order.status === 'DELIVERED' && (
-          <>
-            <Descriptions.Item label="Chain (giao hàng)">{order.deliveryChainStatus || '—'}</Descriptions.Item>
-            <Descriptions.Item label="TxHash">{order.deliveryTxHash || '—'}</Descriptions.Item>
-            {order.deliveryChainError && (
-              <Descriptions.Item label="Lỗi chain">
-                <Text type="danger">{order.deliveryChainError}</Text>
-              </Descriptions.Item>
-            )}
-          </>
-        )}
       </Descriptions>
 
       <Typography.Title level={5}>Dòng đặt hàng</Typography.Title>

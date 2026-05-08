@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Button, Typography, theme, Avatar, Dropdown, Space } from 'antd';
 import {
   DashboardOutlined,
@@ -12,9 +12,9 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import api from '../../lib/api';
 import SupplierOverview from './components/SupplierOverview';
 import SupplierRawBatchManagement from './components/SupplierRawBatchManagement';
-import SupplierTransferManagement from './components/SupplierTransferManagement';
 import SupplierOrderManagement from './components/orders/SupplierOrderManagement';
 
 const { Header, Sider, Content } = Layout;
@@ -41,6 +41,24 @@ const SupplierDashboard = () => {
     }
   }
 
+  const [avatarUrl, setAvatarUrl] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/identity/api/v1/users/profile');
+        if (response.data?.result?.avatarUrl) {
+          setAvatarUrl(response.data.result.avatarUrl);
+        }
+      } catch (error) {
+        console.error('Lỗi khi lấy thông tin profile:', error);
+      }
+    };
+    if (token) {
+      fetchProfile();
+    }
+  }, [token]);
+
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
@@ -64,11 +82,6 @@ const SupplierDashboard = () => {
       icon: <ShoppingCartOutlined />,
       label: 'Đơn đặt hàng',
     },
-    {
-      key: 'transfers',
-      icon: <SwapOutlined />,
-      label: 'Vận chuyển',
-    },
   ];
 
   const renderContent = () => {
@@ -79,8 +92,6 @@ const SupplierDashboard = () => {
         return <SupplierRawBatchManagement />;
       case 'orders':
         return <SupplierOrderManagement />;
-      case 'transfers':
-        return <SupplierTransferManagement />;
       default:
         return <SupplierOverview />;
     }
@@ -104,7 +115,19 @@ const SupplierDashboard = () => {
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <>
+      <style>{`
+        ::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          background: transparent !important;
+        }
+        * {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
+        }
+      `}</style>
+      <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       <Sider trigger={null} collapsible collapsed={collapsed} theme="light">
         <div
           style={{
@@ -128,7 +151,7 @@ const SupplierDashboard = () => {
           style={{ borderRight: 0 }}
         />
       </Sider>
-      <Layout>
+      <Layout style={{ display: 'flex', flexDirection: 'column' }}>
         <Header
           style={{
             padding: '0 24px 0 0',
@@ -138,6 +161,7 @@ const SupplierDashboard = () => {
             alignItems: 'center',
             boxShadow: '0 1px 4px rgba(0,21,41,.08)',
             zIndex: 1,
+            flexShrink: 0, // Prevent header from shrinking
           }}
         >
           <Button
@@ -153,24 +177,29 @@ const SupplierDashboard = () => {
 
           <Dropdown menu={{ items: userDropdownItems }} placement="bottomRight">
             <Space style={{ cursor: 'pointer' }}>
-              <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#52c41a' }} />
+              <Avatar src={avatarUrl} style={{ backgroundColor: '#52c41a' }}>
+                {!avatarUrl && (username ? username.charAt(0).toUpperCase() : <UserOutlined />)}
+              </Avatar>
               <Text strong>{username}</Text>
             </Space>
           </Dropdown>
         </Header>
         <Content
+          className="hide-scrollbar"
           style={{
             margin: '24px 16px',
             padding: 24,
-            minHeight: 280,
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
+            overflowY: 'auto', // This makes only the content area scrollable
+            flex: 1, // Take up remaining height
           }}
         >
           {renderContent()}
         </Content>
       </Layout>
     </Layout>
+    </>
   );
 };
 

@@ -12,11 +12,14 @@ import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.tx.gas.StaticGasProvider;
 import vn.edu.kma.blockchain_service.contract.Traceability;
+import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
 import vn.edu.kma.blockchain_service.dto.response.BatchRecordResponse;
 import vn.edu.kma.blockchain_service.dto.response.TransformedBatchRecordResponse;
+import vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse;
 import vn.edu.kma.blockchain_service.service.TraceabilityService;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -134,32 +137,44 @@ public class TraceabilityServiceImpl implements TraceabilityService {
     }
 
     @Override
-    public vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse verifyHashes(vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest request) throws Exception {
-        java.util.List<vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse.VerifyResult> results = new java.util.ArrayList<>();
+    public VerifyHashesResponse verifyHashes(VerifyHashesRequest request) throws Exception {
+        List<VerifyHashesResponse.VerifyResult> results = new ArrayList<>();
         
+        // 1. Tải Smart Contract từ Blockchain
+        // Dùng credentials (tài khoản hệ thống) và contractAddress để tạo đối tượng giao tiếp với Blockchain
         Credentials credentials = Credentials.create(privateKey);
         Traceability contract = Traceability.load(
-                contractAddress, web3j, credentials, new org.web3j.tx.gas.DefaultGasProvider()
+                contractAddress, web3j, credentials, new DefaultGasProvider()
         );
 
-        for (vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest.HashItem item : request.getItems()) {
-            boolean isMatch = false;
+        // 2. Duyệt qua từng mã Hash mà Product-Service gửi sang để nhờ xác thực
+        for (VerifyHashesRequest.HashItem item : request.getItems()) {
+            boolean isMatch = false; // Mặc định là không khớp (dữ liệu bị sai lệch)
             try {
+                // Chuyển ID Lô hàng từ chuỗi String (Hex) sang mảng byte (Bytes32) cho đúng chuẩn Solidity
                 byte[] batchIdBytes = hexToBytes32(item.getBatchIdHex());
                 String onChainHash = null;
 
+                // 3. Đọc dữ liệu Gốc từ Blockchain (Chỉ gọi hàm read, không tốn phí Gas)
                 if ("RAW".equalsIgnoreCase(item.getType())) {
+                    // Nếu là Nguyên liệu gốc
                     var tuple = contract.getBatchRecord(batchIdBytes).send();
-                    onChainHash = bytes32ToHex(tuple.component1());
+                    onChainHash = bytes32ToHex(tuple.component1()); // Lấy Hash đã lưu lúc khai báo
                 } else if ("TRANSFORMED".equalsIgnoreCase(item.getType())) {
+                    // Nếu là Lô hàng chế biến (Pallet)
                     var tuple = contract.getTransformedBatchRecord(batchIdBytes).send();
-                    onChainHash = bytes32ToHex(tuple.component1());
+                    onChainHash = bytes32ToHex(tuple.component1()); // Lấy Hash đã lưu lúc sản xuất
                 }
 
+                // 4. Đối chiếu (So sánh)
                 if (onChainHash != null) {
-                    String inputHash = item.getDataHashHex();
+                    String inputHash = item.getDataHashHex(); // Mã Hash tính bằng dữ liệu hiện tại ở DB
                     if (inputHash != null) {
+                        // Thêm tiền tố 0x nếu chưa có để đồng nhất format
                         if (!inputHash.startsWith("0x")) inputHash = "0x" + inputHash;
+                        
+                        // CHỐT HẠ: So sánh Mã Hash lưu trên mạng lưới và Mã Hash gửi lên
+                        // Nếu 2 mã giống hệt nhau -> Dữ liệu ở DB chưa hề bị sửa đổi
                         isMatch = onChainHash.equalsIgnoreCase(inputHash);
                     }
                 }
@@ -167,13 +182,15 @@ public class TraceabilityServiceImpl implements TraceabilityService {
                 log.error("Error verifying batch {}: {}", item.getBatchIdHex(), e.getMessage());
             }
 
-            results.add(vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse.VerifyResult.builder()
+            // 5. Ghi nhận kết quả của Lô này vào danh sách
+            results.add(VerifyHashesResponse.VerifyResult.builder()
                     .batchIdHex(item.getBatchIdHex())
                     .isMatch(isMatch)
                     .build());
         }
 
-        return vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse.builder().results(results).build();
+        // 6. Trả toàn bộ danh sách kết quả (true/false) về cho Product-Service
+        return VerifyHashesResponse.builder().results(results).build();
     }
 
     @Override

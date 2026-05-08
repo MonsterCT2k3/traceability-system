@@ -16,6 +16,8 @@ public class SupplierDirectoryResponse {
     private String id;
     private String username;
     private String fullName;
+    private String avatarUrl;
+    private String location;
     /** Mô tả rút gọn để hiển thị gợi ý tìm kiếm */
     private String descriptionPreview;
 }

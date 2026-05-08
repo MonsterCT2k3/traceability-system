@@ -39,6 +39,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Traceability Mobile App',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
           useMaterial3: true,

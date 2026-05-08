@@ -43,17 +43,16 @@ const AuthPage = () => {
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('userRole', role);
-
-      message.success(`Đăng nhập thành công! Vai trò: ${role}`);
-
+      sessionStorage.setItem('loginSuccess', 'true');
+      
       if (role === 'ADMIN') {
-        navigate('/admin');
+        window.location.href = '/admin';
       } else if (role === 'MANUFACTURER') {
-        navigate('/manufacture');
+        window.location.href = '/manufacture';
       } else if (role === 'SUPPLIER') {
-        navigate('/supplier');
+        window.location.href = '/supplier';
       } else {
-        navigate('/user');
+        window.location.href = '/user';
       }
     } catch (error) {
       const errorMsg = error.response?.data?.message || "Tài khoản hoặc mật khẩu không đúng!";
@@ -73,7 +72,7 @@ const AuthPage = () => {
         email: values.email,
         phone: values.phone,
       });
-      
+
       message.success('Đăng ký thành công! Vui lòng đăng nhập.');
       setActiveTab('login'); // Chuyển về tab đăng nhập
     } catch (error) {
@@ -124,8 +123,8 @@ const AuthPage = () => {
           <Form.Item name="password" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}>
             <Input.Password prefix={<LockOutlined className="site-form-item-icon" />} placeholder="Mật khẩu" />
           </Form.Item>
-          <Form.Item 
-            name="confirmPassword" 
+          <Form.Item
+            name="confirmPassword"
             dependencies={['password']}
             rules={[
               { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
@@ -159,11 +158,11 @@ const AuthPage = () => {
           <Title level={3} className="auth-title">Traceability System</Title>
           <Text type="secondary">Hệ thống truy xuất nguồn gốc</Text>
         </div>
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab} 
-          centered 
-          items={items} 
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          centered
+          items={items}
           className="auth-tabs"
         />
       </Card>

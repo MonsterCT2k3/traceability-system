@@ -17,6 +17,7 @@ public class TraceHistoryEvent {
     private LocalDateTime timestamp;
     private String actorId; // ID người thực hiện / người nhận (Retailer, Wholesaler)
     private String actorName; // Tên hiển thị của người/doanh nghiệp
+    private String actorAvatarUrl; // Link ảnh đại diện
     private String location;
     private String txHash; // Nếu có ghi nhận trên blockchain
     private Boolean isVerifiedOnChain; // true: đã đối chiếu khớp với blockchain, false: sai lệch, null: chưa kiểm tra

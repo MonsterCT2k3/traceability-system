@@ -4,6 +4,7 @@ class TraceHistoryEventEntity {
   final String? timestamp;
   final String? actorId;
   final String? actorName;
+  final String? actorAvatarUrl;
   final String? location;
   final String? txHash;
   final bool? isVerifiedOnChain;
@@ -14,6 +15,7 @@ class TraceHistoryEventEntity {
     this.timestamp,
     this.actorId,
     this.actorName,
+    this.actorAvatarUrl,
     this.location,
     this.txHash,
     this.isVerifiedOnChain,

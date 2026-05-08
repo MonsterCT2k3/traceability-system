@@ -82,6 +82,30 @@ public class RawBatchController {
         }
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<RawBatchResponse>> getById(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String token
+    ) {
+        try {
+            RawBatchResponse result = rawBatchService.getById(id, token);
+            return ResponseEntity.ok(ApiResponse.<RawBatchResponse>builder()
+                    .code(200)
+                    .message("OK")
+                    .result(result)
+                    .build());
+        } catch (Exception e) {
+            log.error("getById failed", e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.<RawBatchResponse>builder()
+                            .code(500)
+                            .message("Lỗi: " + e.getMessage())
+                            .build()
+            );
+        }
+    }
+
     @GetMapping("/my")
     @PreAuthorize("hasAnyRole('SUPPLIER','MANUFACTURER','ADMIN')")
     public ResponseEntity<ApiResponse<List<RawBatchResponse>>> getMyRawBatches(

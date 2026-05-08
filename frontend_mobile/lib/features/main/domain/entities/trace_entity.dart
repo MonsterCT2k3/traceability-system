@@ -5,6 +5,7 @@ class TraceEntity {
   final String unitSerial;
   final String productName;
   final String? productDescription;
+  final String? productImageUrl;
   final String cartonCode;
   final String palletCode;
   final String palletName;
@@ -19,6 +20,7 @@ class TraceEntity {
     required this.unitSerial,
     required this.productName,
     required this.productDescription,
+    this.productImageUrl,
     required this.cartonCode,
     required this.palletCode,
     required this.palletName,

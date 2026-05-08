@@ -4,6 +4,7 @@ import { CheckOutlined, CloseOutlined, EyeOutlined, CarOutlined } from '@ant-des
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../../../lib/api';
 import UserDirectoryDisplay from '../../../../components/trade-order/UserDirectoryDisplay';
+import ProductNameDisplay from '../../../../components/trade-order/ProductNameDisplay';
 import OrderStatusTag from './OrderStatusTag';
 import { ORDER_STATUS, ORDER_TYPE } from '../../constants/tradeOrderConstants';
 import AssignCarrierModal from '../../../supplier/components/orders/AssignCarrierModal';
@@ -19,7 +20,12 @@ const fetchIncomingRetailOrders = async () => {
 
 const lineColumns = [
   { title: '#', dataIndex: 'lineIndex', key: 'lineIndex', width: 56 },
-  { title: 'Sản phẩm ID', dataIndex: 'productId', key: 'productId', ellipsis: true },
+  { 
+    title: 'Sản phẩm', 
+    dataIndex: 'productId', 
+    key: 'productId', 
+    render: (id) => <ProductNameDisplay productId={id} /> 
+  },
   {
     title: 'Số thùng',
     dataIndex: 'quantityCartons',

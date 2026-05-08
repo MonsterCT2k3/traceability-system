@@ -14,6 +14,18 @@ import 'features/main/domain/usecases/get_trace_by_serial.dart';
 import 'features/main/domain/usecases/verify_trace_on_chain.dart';
 import 'features/main/presentation/bloc/trace/trace_bloc.dart';
 
+import 'features/transporter/data/datasources/transporter_remote_datasource.dart';
+import 'features/transporter/data/repositories/transporter_repository_impl.dart';
+import 'features/transporter/domain/repositories/transporter_repository.dart';
+import 'features/transporter/domain/usecases/confirm_delivered.dart';
+import 'features/transporter/domain/usecases/confirm_picked_up.dart';
+import 'features/transporter/domain/usecases/get_order_details.dart';
+import 'features/transporter/domain/usecases/get_transporter_orders.dart';
+import 'features/transporter/domain/usecases/resolve_user_label.dart';
+import 'features/transporter/domain/usecases/resolve_batch_name.dart';
+import 'features/transporter/domain/usecases/resolve_product_name.dart';
+import 'features/transporter/presentation/bloc/transporter_orders_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -50,6 +62,35 @@ Future<void> init() async {
   // Data sources
   sl.registerLazySingleton<TraceRemoteDataSource>(
     () => TraceRemoteDataSourceImpl(apiClient: sl()),
+  );
+
+  // Features - Transporter
+  // Bloc
+  sl.registerFactory(
+    () => TransporterOrdersBloc(
+      getTransporterOrders: sl(),
+      confirmPickedUp: sl(),
+      confirmDelivered: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetTransporterOrdersUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmPickedUpUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmDeliveredUseCase(sl()));
+  sl.registerLazySingleton(() => GetOrderDetailsUseCase(sl()));
+  sl.registerLazySingleton(() => ResolveUserLabelUseCase(sl()));
+  sl.registerLazySingleton(() => ResolveBatchNameUseCase(sl()));
+  sl.registerLazySingleton(() => ResolveProductNameUseCase(sl()));
+
+  // Repository
+  sl.registerLazySingleton<TransporterRepository>(
+    () => TransporterRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<TransporterRemoteDataSource>(
+    () => TransporterRemoteDataSourceImpl(apiClient: sl()),
   );
 
   // Core

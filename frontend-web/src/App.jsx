@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { message } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AuthPage from './pages/common/AuthPage';
 // Import các trang sẽ tạo ở bước sau
@@ -29,6 +30,13 @@ const PrivateRoute = ({ element, allowedRoles }) => {
   const token = localStorage.getItem('accessToken');
   const userRole = localStorage.getItem('userRole');
   const normalized = normalizeRole(userRole);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('loginSuccess')) {
+      message.success(`Đăng nhập thành công! Vai trò: ${normalized}`);
+      sessionStorage.removeItem('loginSuccess');
+    }
+  }, [normalized]);
 
   if (!token) {
     return <Navigate to="/login" replace />;

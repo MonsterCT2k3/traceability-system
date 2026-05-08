@@ -22,5 +22,6 @@ public interface RawBatchService {
      * Danh sách lô theo chủ sở hữu (dùng khi NSX chọn NCC để đặt hàng).
      */
     List<RawBatchResponse> getRawBatchesByOwnerId(String ownerId, String token);
-}
 
+    RawBatchResponse getById(String id, String token);
+}

@@ -29,9 +29,6 @@ public class MaterialCatalogDataSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (categoryRepository.count() > 0) {
-            return;
-        }
         log.info("Seeding material_categories / material_items...");
 
         record Cat(String code, String label, int order, List<String> names) {}
@@ -49,7 +46,8 @@ public class MaterialCatalogDataSeeder implements ApplicationRunner {
                         "Khoai tây",
                         "Bắp cải",
                         "Cà chua",
-                        "Rau muống"
+                        "Rau muống",
+                        "Nha đam"
                 )),
                 new Cat("COFFEE", "Cà phê", 30, List.of(
                         "Cà phê hạt Arabica",
@@ -66,6 +64,22 @@ public class MaterialCatalogDataSeeder implements ApplicationRunner {
                         "Nguyên liệu dự phòng"
                 ))
         );
+
+        if (categoryRepository.count() > 0) {
+            // Đảm bảo Nha đam có trong DB
+            categoryRepository.findByLabelAndActiveTrue("Rau củ").ifPresent(cat -> {
+                if (!itemRepository.existsByCategory_IdAndNameAndActiveTrue(cat.getId(), "Nha đam")) {
+                    itemRepository.save(MaterialItem.builder()
+                            .category(cat)
+                            .name("Nha đam")
+                            .sortOrder(60)
+                            .active(true)
+                            .build());
+                    log.info("Appended Nha đam to Rau củ category");
+                }
+            });
+            return;
+        }
 
         for (Cat c : data) {
             MaterialCategory cat = categoryRepository.save(MaterialCategory.builder()

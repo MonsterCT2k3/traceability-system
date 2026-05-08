@@ -194,7 +194,11 @@ public class ProductUnitServiceImpl implements ProductUnitService {
         }
         ProductUnit unit = productUnitRepository.findByUnitSerial(unitSerial.trim())
                 .orElseThrow(() -> new RuntimeException("Unit không tồn tại"));
-        // Không tăng scanCount khi verify
+        
+        // BƯỚC 1: BẮT ĐẦU XÁC THỰC
+        // Khi gọi API verify, ta không tăng biến đếm số lượt quét (scanCount) 
+        // để tránh làm sai lệch số liệu thực tế khi người dùng chỉ muốn kiểm tra lại dữ liệu.
+        // Truyền cờ verify = true để kích hoạt logic đối chiếu với Blockchain ở phần dưới.
         return buildPublicTrace(unit, true);
     }
 
@@ -216,17 +220,24 @@ public class ProductUnitServiceImpl implements ProductUnitService {
 
         int scanDisplay = unit.getScanCount() == null ? 0 : unit.getScanCount();
 
+        // BƯỚC 2: TRUY VẤN VÀ GOM DỮ LIỆU LỊCH SỬ TỪ DATABASE
+        // Hệ thống sẽ lội ngược dòng từ Sản phẩm lẻ (Unit) -> Thùng (Carton) -> Lô (Pallet) -> Nguyên liệu gốc (RawBatch)
+        // và thu thập tất cả các sự kiện vận chuyển tương ứng để tạo thành dòng thời gian (historyEvents).
         List<TraceHistoryEvent> historyEvents = buildHistoryEvents(pallet, carton, unit, verify);
 
+        // BƯỚC 4: KẾT LUẬN TOÀN VẸN DỮ LIỆU
+        // Đánh giá xem dữ liệu trên hệ thống có bị sửa đổi trái phép hay không
         Boolean isDataIntact = null;
         if (verify) {
-            isDataIntact = true;
+            isDataIntact = true; // Mặc định tin tưởng là dữ liệu nguyên vẹn (true)
             for (TraceHistoryEvent event : historyEvents) {
-                // Nếu là sự kiện quan trọng (RAW/PALLET) mà verify thất bại thì chuỗi dữ liệu không còn nguyên vẹn
+                // Kiểm tra từng sự kiện trong lịch sử xem kết quả đối chiếu Blockchain là gì
+                // Nếu là sự kiện quan trọng (Tạo Nguyên liệu hoặc Sản xuất Pallet) mà kết quả là false (Hash không khớp)
+                // -> Nghĩa là dữ liệu trong Database (tên, số lượng,...) đã bị ai đó sửa đổi, không còn giống như lúc neo lên Blockchain.
                 if (event.getIsVerifiedOnChain() != null && !event.getIsVerifiedOnChain()) {
                     if ("RAW_BATCH_CREATED".equals(event.getEventType()) || "PALLET_MANUFACTURED".equals(event.getEventType())) {
-                        isDataIntact = false;
-                        break;
+                        isDataIntact = false; // Báo động: Chuỗi dữ liệu đã bị can thiệp!
+                        break; // Chỉ cần 1 mắt xích sai là toàn bộ dữ liệu bị coi là không đáng tin cậy
                     }
                 }
             }
@@ -264,8 +275,7 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                             .eventType("RAW_BATCH_CREATED")
                             .eventDescription("Khai báo lô nguyên liệu gốc: " + raw.getMaterialName())
                             .timestamp(raw.getCreatedAt())
-                            .actorId(raw.getOwnerId())
-                            .actorName(fetchActorName(raw.getOwnerId()))
+                            .actorId(raw.getActorId())
                             .location(raw.getLocation())
                             .txHash(raw.getBatchIdHex())
                             .build());
@@ -280,7 +290,6 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                                     .eventDescription("Chuyển giao nguyên liệu thành công")
                                     .timestamp(tr.getUpdatedAt() != null ? tr.getUpdatedAt() : tr.getCreatedAt())
                                     .actorId(tr.getToUserId()) // Người nhận
-                                    .actorName(fetchActorName(tr.getToUserId()))
                                     .txHash(tr.getBlockchainTxHash())
                                     .build());
                         }
@@ -295,7 +304,6 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 .eventDescription("Sản xuất và đóng gói lô hàng: " + pallet.getPalletName())
                 .timestamp(pallet.getCreatedAt())
                 .actorId(pallet.getOwnerId())
-                .actorName(fetchActorName(pallet.getOwnerId()))
                 .location(pallet.getLocation())
                 .txHash(pallet.getChainBatchIdHex())
                 .build());
@@ -310,7 +318,6 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                         .eventDescription("Lô hàng được chuyển giao thành công")
                         .timestamp(tr.getUpdatedAt() != null ? tr.getUpdatedAt() : tr.getCreatedAt())
                         .actorId(tr.getToUserId())
-                        .actorName(fetchActorName(tr.getToUserId()))
                         .txHash(tr.getBlockchainTxHash())
                         .build());
             }
@@ -326,7 +333,6 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                         .eventDescription("Thùng hàng được chuyển giao thành công")
                         .timestamp(tr.getUpdatedAt() != null ? tr.getUpdatedAt() : tr.getCreatedAt())
                         .actorId(tr.getToUserId())
-                        .actorName(fetchActorName(tr.getToUserId()))
                         .txHash(tr.getBlockchainTxHash())
                         .build());
             }
@@ -342,7 +348,6 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                         .eventDescription("Sản phẩm được chuyển giao thành công")
                         .timestamp(tr.getUpdatedAt() != null ? tr.getUpdatedAt() : tr.getCreatedAt())
                         .actorId(tr.getToUserId())
-                        .actorName(fetchActorName(tr.getToUserId()))
                         .txHash(tr.getBlockchainTxHash())
                         .build());
             }
@@ -357,6 +362,19 @@ public class ProductUnitServiceImpl implements ProductUnitService {
             return a.getTimestamp().compareTo(b.getTimestamp());
         });
 
+        // Populate actor details (name, avatar, and fallback location)
+        for (TraceHistoryEvent event : events) {
+            if (event.getActorId() != null) {
+                ActorDetails details = fetchActorDetails(event.getActorId());
+                event.setActorName(details.name());
+                event.setActorAvatarUrl(details.avatarUrl());
+                // Fallback location to actor's location if the event itself doesn't have one (e.g., Transfer events)
+                if ((event.getLocation() == null || event.getLocation().isBlank()) && details.location() != null) {
+                    event.setLocation(details.location());
+                }
+            }
+        }
+
         // 6. Thực hiện xác thực nếu yêu cầu
         if (verify) {
             performBlockchainVerification(events, pallet, rawBatches);
@@ -365,23 +383,26 @@ public class ProductUnitServiceImpl implements ProductUnitService {
         return events;
     }
 
+    // BƯỚC 3: ĐỐI CHIẾU HASH VỚI BLOCKCHAIN
+    // Hàm này chỉ được chạy khi cờ verify = true
     private void performBlockchainVerification(List<TraceHistoryEvent> events, Pallet pallet, List<RawBatch> rawBatches) {
         try {
             List<VerifyHashesRequest.HashItem> items = new ArrayList<>();
             
-            // 1. Hash Pallet
+            // 3.1. Tính toán lại mã băm (Hash) của Lô hàng (Pallet) DỰA TRÊN DỮ LIỆU HIỆN CÓ TRONG DB
+            // Nếu ai đó sửa DB, hàm calculatePalletHash sẽ ra một chuỗi Hash khác hoàn toàn so với Hash gốc.
             items.add(VerifyHashesRequest.HashItem.builder()
                     .batchIdHex(pallet.getChainBatchIdHex())
-                    .dataHashHex(BlockchainVerificationUtils.calculatePalletHash(pallet))
-                    .type("TRANSFORMED")
+                    .dataHashHex(BlockchainVerificationUtils.calculatePalletHash(pallet)) // Tính Hash Off-chain
+                    .type("TRANSFORMED") // Phân loại là lô thành phẩm
                     .build());
             
-            // 2. Hash RawBatches
+            // 3.2. Tính toán lại mã băm cho toàn bộ các Nguyên liệu gốc tạo nên Pallet này
             for (RawBatch raw : rawBatches) {
                 items.add(VerifyHashesRequest.HashItem.builder()
                         .batchIdHex(raw.getBatchIdHex())
-                        .dataHashHex(BlockchainVerificationUtils.calculateRawBatchHash(raw))
-                        .type("RAW")
+                        .dataHashHex(BlockchainVerificationUtils.calculateRawBatchHash(raw)) // Tính Hash Off-chain
+                        .type("RAW") // Phân loại là nguyên liệu thô
                         .build());
             }
 
@@ -391,6 +412,8 @@ public class ProductUnitServiceImpl implements ProductUnitService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<VerifyHashesRequest> entity = new HttpEntity<>(request, headers);
 
+            // 3.3. Gửi danh sách Hash vừa tính được sang Blockchain Service
+            // API này sẽ lấy Hash gửi lên đi so sánh với Hash gốc lưu trên Smart Contract
             ResponseEntity<ApiResponse<VerifyHashesResponse>> resp = restTemplate.exchange(
                     blockchainBaseUrl + "/verify-hashes",
                     HttpMethod.POST,
@@ -398,20 +421,26 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                     new ParameterizedTypeReference<ApiResponse<VerifyHashesResponse>>() {}
             );
 
+            // 3.4. Cập nhật kết quả xác thực cho từng sự kiện hiển thị trên App
             if (resp.getBody() != null && resp.getBody().getResult() != null) {
                 VerifyHashesResponse result = resp.getBody().getResult();
+                
+                // Chuyển kết quả trả về thành dạng Map<BatchId, true/false> cho dễ tìm kiếm
                 Map<String, Boolean> matchMap = result.getResults().stream()
                         .collect(java.util.stream.Collectors.toMap(
                                 VerifyHashesResponse.VerifyResult::getBatchIdHex,
                                 VerifyHashesResponse.VerifyResult::isMatch
                         ));
                 
+                // Duyệt qua tất cả các sự kiện lịch sử (Tạo lô, Vận chuyển...)
                 for (TraceHistoryEvent event : events) {
                     if (event.getTxHash() != null) {
                         if (matchMap.containsKey(event.getTxHash())) {
+                            // Nếu là sự kiện Tạo Pallet/Nguyên liệu, lấy kết quả true/false từ Blockchain gán vào
                             event.setIsVerifiedOnChain(matchMap.get(event.getTxHash()));
                         } else if (event.getEventType().contains("TRANSFERRED")) {
                             // Lựa chọn 1: Các khâu vận chuyển coi như xác thực nội bộ (Internal Verified)
+                            // Hiện tại các giao dịch chuyển giao (Transfer) đang tự động đánh dấu tick xanh
                             event.setIsVerifiedOnChain(true);
                         }
                     }
@@ -422,9 +451,11 @@ public class ProductUnitServiceImpl implements ProductUnitService {
         }
     }
 
-    private String fetchActorName(String actorId) {
+    private record ActorDetails(String name, String avatarUrl, String location) {}
+
+    private ActorDetails fetchActorDetails(String actorId) {
         if (actorId == null || actorId.isBlank())
-            return null;
+            return new ActorDetails(null, null, null);
         try {
             String url = identityServiceUrl + "/api/v1/users/directory/by-id/" + actorId;
             vn.edu.kma.common.dto.response.ApiResponse<?> response = restTemplate.getForObject(url,
@@ -432,14 +463,17 @@ public class ProductUnitServiceImpl implements ProductUnitService {
             if (response != null && response.getResult() != null) {
                 java.util.Map<?, ?> result = (java.util.Map<?, ?>) response.getResult();
                 Object fullNameObj = result.get("fullName");
-                if (fullNameObj != null && !fullNameObj.toString().isBlank()) {
-                    return fullNameObj.toString();
-                }
+                Object avatarUrlObj = result.get("avatarUrl");
+                Object locationObj = result.get("location");
+                String name = fullNameObj != null && !fullNameObj.toString().isBlank() ? fullNameObj.toString() : null;
+                String avatarUrl = avatarUrlObj != null && !avatarUrlObj.toString().isBlank() ? avatarUrlObj.toString() : null;
+                String location = locationObj != null && !locationObj.toString().isBlank() ? locationObj.toString() : null;
+                return new ActorDetails(name, avatarUrl, location);
             }
         } catch (Exception e) {
-            log.warn("Could not fetch actor name for id: {}", actorId);
+            log.warn("Could not fetch actor details for id: {}", actorId);
         }
-        return null;
+        return new ActorDetails(null, null, null);
     }
 
     private static String emptyToNull(String s) {

@@ -128,6 +128,8 @@ public class UserManagementService {
                 .id(u.getId())
                 .username(u.getUsername())
                 .fullName(u.getFullName())
+                .avatarUrl(u.getAvatarUrl())
+                .location(u.getLocation())
                 .descriptionPreview(truncateDescription(u.getDescription(), 160))
                 .build();
     }

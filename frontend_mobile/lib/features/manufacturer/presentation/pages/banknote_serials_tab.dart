@@ -6,12 +6,11 @@ import 'package:get_it/get_it.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../utils/banknote_serial_candidate_parser.dart';
-import 'banknote_barcode_scan_page.dart';
 import 'banknote_live_ocr_page.dart';
 
 const _kPrefsKey = 'manufacturer_banknote_serials_json';
 
-/// Seri lưu theo **tập** (camera: `kBanknoteOcrBatchSize` seri/tập). Nhập tay / quét: một tập 1 seri.
+/// Seri lưu theo **tập** (camera: `kBanknoteOcrBatchSize` seri/tập). Nhập tay: một tập 1 seri.
 class BanknoteSerialsTab extends StatefulWidget {
   const BanknoteSerialsTab({super.key});
 
@@ -280,15 +279,6 @@ class _BanknoteSerialsTabState extends State<BanknoteSerialsTab> {
     }
   }
 
-  Future<void> _openScanner() async {
-    final value = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BanknoteBarcodeScanPage()),
-    );
-    if (value != null && value.isNotEmpty) {
-      await _add(value);
-    }
-  }
-
   Future<void> _openLiveOcr() async {
     final batch = await Navigator.of(context).push<List<String>>(
       MaterialPageRoute(builder: (_) => const BanknoteLiveOcrPage()),
@@ -310,7 +300,7 @@ class _BanknoteSerialsTabState extends State<BanknoteSerialsTab> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Text(
-            'Lưu theo tập: camera + nhận diện mỗi lần = một tập $kBanknoteOcrBatchSize seri. Nhập tay / quét mã = một tập 1 seri.',
+            'Lưu theo tập: camera + nhận diện mỗi lần = một tập $kBanknoteOcrBatchSize seri. Nhập tay = một tập 1 seri.',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
           ),
         ),
@@ -348,12 +338,6 @@ class _BanknoteSerialsTabState extends State<BanknoteSerialsTab> {
                 onPressed: _openLiveOcr,
                 icon: const Icon(Icons.document_scanner_outlined),
                 label: const Text('Camera + nhận diện ($kBanknoteOcrBatchSize seri / tập)'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _openScanner,
-                icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Quét mã vạch / QR'),
               ),
             ],
           ),
@@ -402,7 +386,7 @@ class _BanknoteSerialsTabState extends State<BanknoteSerialsTab> {
           child: _batches.isEmpty
               ? Center(
                   child: Text(
-                    'Chưa có tập nào.\nDùng Camera + nhận diện ($kBanknoteOcrBatchSize seri) hoặc nhập / quét mã.',
+                    'Chưa có tập nào.\nDùng Camera + nhận diện ($kBanknoteOcrBatchSize seri) hoặc nhập tay.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
