@@ -10,10 +10,11 @@ abstract class TraceEvent extends Equatable {
 
 class GetTraceDetails extends TraceEvent {
   final String serial;
-  const GetTraceDetails(this.serial);
+  final bool isHistory;
+  const GetTraceDetails(this.serial, {this.isHistory = false});
 
   @override
-  List<Object?> get props => [serial];
+  List<Object?> get props => [serial, isHistory];
 }
 
 class VerifyTraceBlockchain extends TraceEvent {

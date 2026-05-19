@@ -12,4 +12,5 @@ abstract class AuthRepository {
   Future<Either<Failure, List<RoleRequest>>> getMyRoleRequests();
   Future<Either<Failure, RoleRequest>> createRoleRequest(String requestedRole, String description);
   Future<Either<Failure, void>> logout();
+  Future<Either<Failure, User>> checkAuthStatus();
 }

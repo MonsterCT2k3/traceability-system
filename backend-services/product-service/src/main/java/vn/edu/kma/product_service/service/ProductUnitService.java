@@ -8,9 +8,9 @@ public interface ProductUnitService {
 
     ProductUnitGenerateResponse generateUnits(String cartonId, ProductUnitGenerateRequest request, String tokenHeader);
 
-    ProductUnitPublicTraceResponse getPublicTraceByUnitId(String unitId);
+    ProductUnitPublicTraceResponse getPublicTraceByUnitId(String unitId, boolean isHistory);
 
-    ProductUnitPublicTraceResponse getPublicTraceByUnitSerial(String unitSerial);
+    ProductUnitPublicTraceResponse getPublicTraceByUnitSerial(String unitSerial, boolean isHistory);
 
     /**
      * Xác thực lịch sử truy xuất với Blockchain.

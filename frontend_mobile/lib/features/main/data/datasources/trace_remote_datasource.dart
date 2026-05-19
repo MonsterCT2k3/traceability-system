@@ -2,7 +2,7 @@ import '../../../../core/network/api_client.dart';
 import '../models/trace_model.dart';
 
 abstract class TraceRemoteDataSource {
-  Future<TraceModel> getTraceBySerial(String serial);
+  Future<TraceModel> getTraceBySerial(String serial, {bool isHistory = false});
   Future<TraceModel> getTraceByUnitId(String unitId);
   Future<TraceModel> verifyTraceOnChain(String serial);
 }
@@ -13,10 +13,10 @@ class TraceRemoteDataSourceImpl implements TraceRemoteDataSource {
   TraceRemoteDataSourceImpl({required this.apiClient});
 
   @override
-  Future<TraceModel> getTraceBySerial(String serial) async {
+  Future<TraceModel> getTraceBySerial(String serial, {bool isHistory = false}) async {
     final response = await apiClient.get(
       '/product/api/v1/units/trace/by-serial',
-      queryParameters: {'serial': serial},
+      queryParameters: {'serial': serial, 'isHistory': isHistory},
     );
     return TraceModel.fromJson(response.data['result']);
   }

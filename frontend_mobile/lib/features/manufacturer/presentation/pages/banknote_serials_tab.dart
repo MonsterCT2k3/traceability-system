@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../utils/banknote_serial_candidate_parser.dart';
@@ -25,6 +26,7 @@ class _BanknoteSerialsTabState extends State<BanknoteSerialsTab> {
   bool _syncing = false;
 
   ApiClient get _api => GetIt.I<ApiClient>();
+  SharedPreferences get _prefs => GetIt.I<SharedPreferences>();
 
   int get _totalSerials => _batches.fold<int>(0, (s, b) => s + b.length);
 
@@ -139,7 +141,7 @@ class _BanknoteSerialsTabState extends State<BanknoteSerialsTab> {
   }
 
   Future<void> _load() async {
-    final raw = _api.sharedPreferences.getString(_kPrefsKey);
+    final raw = _prefs.getString(_kPrefsKey);
     if (raw != null && raw.isNotEmpty) {
       try {
         final decoded = jsonDecode(raw);
@@ -185,7 +187,7 @@ class _BanknoteSerialsTabState extends State<BanknoteSerialsTab> {
   }
 
   Future<void> _persist() async {
-    await _api.sharedPreferences.setString(
+    await _prefs.setString(
       _kPrefsKey,
       jsonEncode({
         'v': 2,

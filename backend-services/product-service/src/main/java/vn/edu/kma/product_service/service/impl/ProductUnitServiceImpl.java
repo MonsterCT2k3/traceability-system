@@ -166,24 +166,28 @@ public class ProductUnitServiceImpl implements ProductUnitService {
 
     @Override
     @Transactional
-    public ProductUnitPublicTraceResponse getPublicTraceByUnitId(String unitId) {
+    public ProductUnitPublicTraceResponse getPublicTraceByUnitId(String unitId, boolean isHistory) {
         ProductUnit unit = productUnitRepository.findById(unitId)
                 .orElseThrow(() -> new RuntimeException("Unit không tồn tại"));
-        unit.setScanCount((unit.getScanCount() == null ? 0 : unit.getScanCount()) + 1);
-        productUnitRepository.save(unit);
+        if (!isHistory) {
+            unit.setScanCount((unit.getScanCount() == null ? 0 : unit.getScanCount()) + 1);
+            productUnitRepository.save(unit);
+        }
         return buildPublicTrace(unit, false);
     }
 
     @Override
     @Transactional
-    public ProductUnitPublicTraceResponse getPublicTraceByUnitSerial(String unitSerial) {
+    public ProductUnitPublicTraceResponse getPublicTraceByUnitSerial(String unitSerial, boolean isHistory) {
         if (unitSerial == null || unitSerial.isBlank()) {
             throw new RuntimeException("unitSerial là bắt buộc");
         }
         ProductUnit unit = productUnitRepository.findByUnitSerial(unitSerial.trim())
                 .orElseThrow(() -> new RuntimeException("Unit không tồn tại"));
-        unit.setScanCount((unit.getScanCount() == null ? 0 : unit.getScanCount()) + 1);
-        productUnitRepository.save(unit);
+        if (!isHistory) {
+            unit.setScanCount((unit.getScanCount() == null ? 0 : unit.getScanCount()) + 1);
+            productUnitRepository.save(unit);
+        }
         return buildPublicTrace(unit, false);
     }
 

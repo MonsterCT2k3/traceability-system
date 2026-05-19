@@ -43,9 +43,12 @@ public class ProductUnitController {
 
     /** Truy xuất công khai theo id; mỗi lần truy xuất tăng scanCount. */
     @GetMapping("/{unitId}/trace")
-    public ResponseEntity<ApiResponse<ProductUnitPublicTraceResponse>> traceById(@PathVariable String unitId) {
+    public ResponseEntity<ApiResponse<ProductUnitPublicTraceResponse>> traceById(
+            @PathVariable String unitId,
+            @RequestParam(value = "isHistory", defaultValue = "false") boolean isHistory
+    ) {
         try {
-            ProductUnitPublicTraceResponse result = productUnitService.getPublicTraceByUnitId(unitId);
+            ProductUnitPublicTraceResponse result = productUnitService.getPublicTraceByUnitId(unitId, isHistory);
             return ResponseEntity.ok(
                     ApiResponse.<ProductUnitPublicTraceResponse>builder()
                             .code(200)
@@ -75,10 +78,11 @@ public class ProductUnitController {
     /** Truy xuất công khai theo mã serial in trên bao bì; mỗi lần truy xuất tăng scanCount. */
     @GetMapping("/trace/by-serial")
     public ResponseEntity<ApiResponse<ProductUnitPublicTraceResponse>> traceBySerial(
-            @RequestParam("serial") String serial
+            @RequestParam("serial") String serial,
+            @RequestParam(value = "isHistory", defaultValue = "false") boolean isHistory
     ) {
         try {
-            ProductUnitPublicTraceResponse result = productUnitService.getPublicTraceByUnitSerial(serial);
+            ProductUnitPublicTraceResponse result = productUnitService.getPublicTraceByUnitSerial(serial, isHistory);
             return ResponseEntity.ok(
                     ApiResponse.<ProductUnitPublicTraceResponse>builder()
                             .code(200)

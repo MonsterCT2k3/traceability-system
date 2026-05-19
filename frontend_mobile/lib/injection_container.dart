@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,6 +14,12 @@ import 'features/main/domain/repositories/trace_repository.dart';
 import 'features/main/domain/usecases/get_trace_by_serial.dart';
 import 'features/main/domain/usecases/verify_trace_on_chain.dart';
 import 'features/main/presentation/bloc/trace/trace_bloc.dart';
+import 'features/main/data/datasources/scan_history_remote_datasource.dart';
+import 'features/main/data/repositories/scan_history_repository_impl.dart';
+import 'features/main/domain/repositories/scan_history_repository.dart';
+import 'features/main/domain/usecases/get_scan_history_usecase.dart';
+import 'features/main/domain/usecases/record_scan_history_usecase.dart';
+import 'features/main/presentation/bloc/history/history_bloc.dart';
 
 import 'features/transporter/data/datasources/transporter_remote_datasource.dart';
 import 'features/transporter/data/repositories/transporter_repository_impl.dart';
@@ -64,6 +71,29 @@ Future<void> init() async {
     () => TraceRemoteDataSourceImpl(apiClient: sl()),
   );
 
+  // Features - Main (Scan History)
+  // Bloc
+  sl.registerFactory(
+    () => HistoryBloc(
+      getScanHistory: sl(),
+      recordScanHistory: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetScanHistoryUseCase(sl()));
+  sl.registerLazySingleton(() => RecordScanHistoryUseCase(sl()));
+
+  // Repository
+  sl.registerLazySingleton<ScanHistoryRepository>(
+    () => ScanHistoryRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<ScanHistoryRemoteDataSource>(
+    () => ScanHistoryRemoteDataSourceImpl(apiClient: sl()),
+  );
+
   // Features - Transporter
   // Bloc
   sl.registerFactory(
@@ -94,10 +124,12 @@ Future<void> init() async {
   );
 
   // Core
-  sl.registerLazySingleton(() => ApiClient(dio: sl(), sharedPreferences: sl()));
+  sl.registerLazySingleton(() => ApiClient(dio: sl(), secureStorage: sl()));
 
   // External (Third Party)
   final sharedPreferences = await SharedPreferences.getInstance();
+  const secureStorage = FlutterSecureStorage();
   sl.registerLazySingleton(() => sharedPreferences);
+  sl.registerLazySingleton(() => secureStorage);
   sl.registerLazySingleton(() => Dio());
 }

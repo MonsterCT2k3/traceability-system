@@ -8,15 +8,15 @@ import 'package:frontend_mobile/features/main/presentation/widgets/product_info_
 import 'package:frontend_mobile/features/main/presentation/widgets/trace_timeline.dart';
 
 class TraceResultPage extends StatelessWidget {
-  final TraceEntity initialTrace;
+  final TraceEntity? initialTrace;
 
-  const TraceResultPage({super.key, required this.initialTrace});
+  const TraceResultPage({super.key, this.initialTrace});
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TraceBloc, TraceState>(
       builder: (context, state) {
-        TraceEntity trace = initialTrace;
+        TraceEntity? trace = initialTrace;
         bool isVerifying = false;
         String? verificationError;
 
@@ -24,6 +24,13 @@ class TraceResultPage extends StatelessWidget {
           trace = state.trace;
           isVerifying = state.isVerifying;
           verificationError = state.verificationError;
+        }
+
+        if (trace == null || state is TraceLoading) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Kết quả truy xuất')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
         }
 
         return Scaffold(
@@ -49,7 +56,7 @@ class TraceResultPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IntegrityBanner(
-                  trace: trace,
+                  trace: trace!,
                   isVerifying: isVerifying,
                   verificationError: verificationError,
                 ),

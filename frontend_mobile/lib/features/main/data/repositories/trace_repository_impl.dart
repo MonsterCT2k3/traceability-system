@@ -11,9 +11,9 @@ class TraceRepositoryImpl implements TraceRepository {
   TraceRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, TraceEntity>> getTraceBySerial(String serial) async {
+  Future<Either<Failure, TraceEntity>> getTraceBySerial(String serial, {bool isHistory = false}) async {
     try {
-      final model = await remoteDataSource.getTraceBySerial(serial);
+      final model = await remoteDataSource.getTraceBySerial(serial, isHistory: isHistory);
       return Right(model);
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Lỗi kết nối máy chủ';

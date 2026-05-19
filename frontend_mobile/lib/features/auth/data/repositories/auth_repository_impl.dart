@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/constants/platform_roles.dart';
 import '../../../../core/error/failures.dart';
 import '../../../profile/domain/entities/role_request.dart';
@@ -13,10 +14,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
   AuthRepositoryImpl({required this.apiClient});
 
+  FlutterSecureStorage get secureStorage => apiClient.secureStorage;
+
   @override
   Future<Either<Failure, User>> login(String username, String password) async {
     try {
-      // 1. Gọi API Login để lấy Token
       final loginResponse = await apiClient.post('/identity/api/v1/auth/login', data: {
         'username': username,
         'password': password,
@@ -27,22 +29,18 @@ class AuthRepositoryImpl implements AuthRepository {
         final accessToken = data['accessToken'];
         final refreshToken = data['refreshToken'];
 
-        // Lưu token vào SharedPreferences
-        await apiClient.sharedPreferences.setString('accessToken', accessToken);
-        await apiClient.sharedPreferences.setString('refreshToken', refreshToken);
+        await secureStorage.write(key: 'accessToken', value: accessToken);
+        await secureStorage.write(key: 'refreshToken', value: refreshToken);
 
-        // 2. Gọi API lấy thông tin Profile
         final profileResponse = await apiClient.get('/identity/api/v1/users/profile');
         if (profileResponse.statusCode == 200) {
           final userData = profileResponse.data['result'];
           final user = User.fromJson(userData);
           if (!PlatformRoles.isMobileAllowed(user.role)) {
-            await apiClient.sharedPreferences.remove('accessToken');
-            await apiClient.sharedPreferences.remove('refreshToken');
+            await secureStorage.delete(key: 'accessToken');
+            await secureStorage.delete(key: 'refreshToken');
             return const Left(
-              ServerFailure(
-                'Vui lòng sử dụng phiên bản web trên trình duyệt.',
-              ),
+              ServerFailure('Vui lòng sử dụng phiên bản web trên trình duyệt.'),
             );
           }
           return Right(user);
@@ -181,8 +179,34 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, void>> logout() async {
-    await apiClient.sharedPreferences.remove('accessToken');
-    await apiClient.sharedPreferences.remove('refreshToken');
+    await secureStorage.delete(key: 'accessToken');
+    await secureStorage.delete(key: 'refreshToken');
     return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, User>> checkAuthStatus() async {
+    try {
+      final token = await secureStorage.read(key: 'accessToken');
+      if (token == null) {
+        return const Left(ServerFailure('Unauthenticated'));
+      }
+      // Token is automatically injected by ApiClient interceptor
+      // If expired, ApiClient interceptor will attempt to refresh it automatically
+      final profileResponse = await apiClient.get('/identity/api/v1/users/profile');
+      if (profileResponse.statusCode == 200) {
+        final userData = profileResponse.data['result'];
+        final user = User.fromJson(userData);
+        if (!PlatformRoles.isMobileAllowed(user.role)) {
+          await secureStorage.delete(key: 'accessToken');
+          await secureStorage.delete(key: 'refreshToken');
+          return const Left(ServerFailure('Vui lòng sử dụng phiên bản web.'));
+        }
+        return Right(user);
+      }
+      return const Left(ServerFailure('Session expired'));
+    } catch (e) {
+      return const Left(ServerFailure('Session expired or network error'));
+    }
   }
 }

@@ -13,4 +13,8 @@ class GetTraceBySerialUseCase implements UseCase<TraceEntity, String> {
   Future<Either<Failure, TraceEntity>> call(String serial) async {
     return await repository.getTraceBySerial(serial);
   }
+
+  Future<Either<Failure, TraceEntity>> callWithHistory(String serial, {bool isHistory = false}) async {
+    return await repository.getTraceBySerial(serial, isHistory: isHistory);
+  }
 }

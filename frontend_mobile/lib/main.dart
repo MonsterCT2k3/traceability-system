@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'injection_container.dart' as di;
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
+import 'features/main/presentation/bloc/history/history_bloc.dart';
 import 'features/main/presentation/pages/main_page.dart';
 import 'features/transporter/presentation/pages/transporter_shell_page.dart';
 import 'features/manufacturer/presentation/pages/manufacturer_shell_page.dart';
@@ -34,7 +36,10 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (_) => di.sl<AuthBloc>(),
+          create: (_) => di.sl<AuthBloc>()..add(CheckAuthStatusEvent()),
+        ),
+        BlocProvider<HistoryBloc>(
+          create: (_) => di.sl<HistoryBloc>(),
         ),
       ],
       child: MaterialApp(
@@ -53,6 +58,9 @@ class MyApp extends StatelessWidget {
             return false;
           },
           builder: (context, state) {
+            if (state is AuthLoading || state is AuthInitial) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
             if (state is AuthAuthenticated) {
               if (_isTransporterRole(state.user.role)) {
                 return const TransporterShellPage();

@@ -1,26 +1,58 @@
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
   final Dio dio;
-  final SharedPreferences sharedPreferences;
+  final FlutterSecureStorage secureStorage;
 
-  ApiClient({required this.dio, required this.sharedPreferences}) {
-    dio.options.baseUrl = 'https://8440-42-116-188-16.ngrok-free.app'; // API Gateway URL
-    // dio.options.baseUrl = 'http://localhost:8080'; // API Gateway URL
+  ApiClient({required this.dio, required this.secureStorage}) {
+    dio.options.baseUrl = 'https://cd5b-2405-4802-499-d890-9cd6-7064-e245-652a.ngrok-free.app';
     dio.options.connectTimeout = const Duration(seconds: 10);
     dio.options.receiveTimeout = const Duration(seconds: 10);
 
     dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        final token = sharedPreferences.getString('accessToken');
+      onRequest: (options, handler) async {
+        final token = await secureStorage.read(key: 'accessToken');
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         return handler.next(options);
       },
-      onError: (DioException e, handler) {
-        // Handle global errors here like 401 Unauthorized
+      onError: (DioException e, handler) async {
+        if (e.response?.statusCode == 401) {
+          // Attempt to refresh token
+          final refreshToken = await secureStorage.read(key: 'refreshToken');
+          if (refreshToken != null) {
+            try {
+              // Create a new Dio instance to avoid infinite interceptor loops
+              final tokenDio = Dio(BaseOptions(baseUrl: dio.options.baseUrl));
+              final refreshResponse = await tokenDio.post(
+                '/identity/api/v1/auth/refresh',
+                data: {'refreshToken': refreshToken},
+              );
+
+              if (refreshResponse.statusCode == 200) {
+                final newAccessToken = refreshResponse.data['result']['accessToken'];
+                final newRefreshToken = refreshResponse.data['result']['refreshToken'];
+
+                await secureStorage.write(key: 'accessToken', value: newAccessToken);
+                await secureStorage.write(key: 'refreshToken', value: newRefreshToken);
+
+                // Retry original request with new token
+                e.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
+                final retryResponse = await tokenDio.fetch(e.requestOptions);
+                return handler.resolve(retryResponse);
+              }
+            } catch (refreshError) {
+              // Refresh failed (e.g., refresh token expired)
+              await secureStorage.delete(key: 'accessToken');
+              await secureStorage.delete(key: 'refreshToken');
+            }
+          } else {
+            await secureStorage.delete(key: 'accessToken');
+            await secureStorage.delete(key: 'refreshToken');
+          }
+        }
         return handler.next(e);
       }
     ));
@@ -33,6 +65,4 @@ class ApiClient {
   Future<Response> post(String path, {dynamic data}) async {
     return await dio.post(path, data: data);
   }
-
-  // Add PUT, DELETE, etc.
 }

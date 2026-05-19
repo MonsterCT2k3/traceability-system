@@ -9,10 +9,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUseCase loginUseCase;
 
   AuthBloc({required this.loginUseCase}) : super(AuthInitial()) {
+    on<CheckAuthStatusEvent>(_onCheckAuthStatus);
     on<LoginEvent>(_onLogin);
     on<LogoutEvent>(_onLogout);
     on<UpdateProfileEvent>(_onUpdateProfile);
     on<UpdateAvatarEvent>(_onUpdateAvatar);
+  }
+
+  Future<void> _onCheckAuthStatus(CheckAuthStatusEvent event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    final authRepository = sl<AuthRepository>();
+    final result = await authRepository.checkAuthStatus();
+    
+    result.fold(
+      (failure) => emit(AuthUnauthenticated()),
+      (user) => emit(AuthAuthenticated(user: user)),
+    );
   }
 
   Future<void> _onUpdateProfile(UpdateProfileEvent event, Emitter<AuthState> emit) async {

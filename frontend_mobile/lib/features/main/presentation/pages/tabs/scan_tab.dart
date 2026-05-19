@@ -12,6 +12,10 @@ import 'package:frontend_mobile/features/main/data/models/trace_model.dart';
 import 'package:frontend_mobile/features/main/presentation/bloc/trace/trace_bloc.dart';
 import 'package:frontend_mobile/features/main/presentation/bloc/trace/trace_event.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend_mobile/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:frontend_mobile/features/auth/presentation/bloc/auth_state.dart';
+import 'package:frontend_mobile/features/main/presentation/bloc/history/history_bloc.dart';
+import 'package:frontend_mobile/features/main/presentation/bloc/history/history_event.dart';
 
 class ScanTab extends StatefulWidget {
   const ScanTab({super.key});
@@ -56,6 +60,11 @@ class _ScanTabState extends State<ScanTab> {
       
       if (!mounted) return;
       setState(() => _busy = false);
+      
+      final authState = context.read<AuthBloc>().state;
+      if (authState is AuthAuthenticated) {
+        context.read<HistoryBloc>().add(RecordHistoryEvent(model.unitSerial));
+      }
       
       await Navigator.push(
         context,
