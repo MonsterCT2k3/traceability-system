@@ -17,14 +17,16 @@ public class Carton {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(nullable = false)
-    private String palletId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pallet_id", nullable = false)
+    private Pallet pallet;
 
     /**
      * Denormalize theo pallet để truy vấn nhanh theo catalog.
      */
-    @Column(nullable = false)
-    private String productId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
 
     @Column(nullable = false, unique = true)
     private String cartonCode;
@@ -57,5 +59,14 @@ public class Carton {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+    // Convenience helpers để các Service cũ vẫn đọc được ID
+    public String getPalletId() {
+        return pallet != null ? pallet.getId() : null;
+    }
+
+    public String getProductId() {
+        return product != null ? product.getId() : null;
     }
 }

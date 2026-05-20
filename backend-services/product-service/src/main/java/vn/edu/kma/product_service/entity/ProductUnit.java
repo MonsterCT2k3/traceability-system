@@ -17,14 +17,17 @@ public class ProductUnit {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(nullable = false)
-    private String cartonId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "carton_id", nullable = false)
+    private Carton carton;
 
-    @Column(nullable = false)
-    private String palletId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pallet_id", nullable = false)
+    private Pallet pallet;
 
-    @Column(nullable = false)
-    private String productId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
 
     /**
      * Mã serial in trên bao bì / dùng cho trace (duy nhất toàn hệ thống).
@@ -55,5 +58,18 @@ public class ProductUnit {
         if (scanCount == null) {
             scanCount = 0;
         }
+    }
+
+    // Convenience helpers
+    public String getCartonId() {
+        return carton != null ? carton.getId() : null;
+    }
+
+    public String getPalletId() {
+        return pallet != null ? pallet.getId() : null;
+    }
+
+    public String getProductId() {
+        return product != null ? product.getId() : null;
     }
 }

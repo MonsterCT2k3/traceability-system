@@ -103,13 +103,17 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 }
 
                 ProductUnit saved = productUnitRepository.save(ProductUnit.builder()
-                        .cartonId(carton.getId())
-                        .palletId(carton.getPalletId())
-                        .productId(carton.getProductId())
+                        .carton(carton)
+                        .pallet(carton.getPallet())
+                        .product(carton.getProduct())
                         .unitSerial(unitSerial)
                         .ownerId(userId)
                         .manufacturerId(carton.getManufacturerId())
                         .build());
+
+                // Cập nhật trạng thái Banknote Serial: đánh dấu đã sử dụng và gán FK về ProductUnit
+                // markAsUsed sẽ không lỗi nếu serial không tồn tại trong bảng (trường hợp serial tự sinh)
+                banknoteSerialRepository.markAsUsed(unitSerial, saved);
 
                 items.add(ProductUnitGeneratedItem.builder()
                         .unitId(saved.getId())

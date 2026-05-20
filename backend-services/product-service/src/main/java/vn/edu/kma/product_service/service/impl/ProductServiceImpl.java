@@ -106,7 +106,7 @@ public class ProductServiceImpl implements ProductService {
                         .map(u -> PackingUnitSerialItem.builder().unitSerial(u.getUnitSerial()).build())
                         .toList();
 
-                ProductPackingManifestResponse current = grouped.computeIfAbsent(carton.getProductId(), id ->
+                ProductPackingManifestResponse current = grouped.computeIfAbsent(carton.getProduct().getId(), id ->
                         ProductPackingManifestResponse.builder()
                                 .productId(id)
                                 .productName(productRepository.findById(id).map(Product::getName).orElse("Unknown"))

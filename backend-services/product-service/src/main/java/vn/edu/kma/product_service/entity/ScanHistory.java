@@ -20,8 +20,9 @@ public class ScanHistory {
     @Column(nullable = false)
     private String userId;
 
-    @Column(nullable = false)
-    private String unitSerial;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "unit_serial", referencedColumnName = "unitSerial", nullable = false)
+    private ProductUnit productUnit;
 
     @Column(nullable = false)
     private LocalDateTime scannedAt;
@@ -31,5 +32,10 @@ public class ScanHistory {
         if (scannedAt == null) {
             scannedAt = LocalDateTime.now();
         }
+    }
+
+    // Convenience helper
+    public String getUnitSerial() {
+        return productUnit != null ? productUnit.getUnitSerial() : null;
     }
 }

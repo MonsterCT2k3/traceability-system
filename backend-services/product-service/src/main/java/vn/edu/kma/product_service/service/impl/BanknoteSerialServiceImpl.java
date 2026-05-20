@@ -101,7 +101,7 @@ public class BanknoteSerialServiceImpl implements BanknoteSerialService {
     public BanknoteSerialSummaryResponse getSummary(String authorizationHeader) throws Exception {
         String userId = extractUserIdFromToken(authorizationHeader);
         long mySerials = banknoteSerialRepository.countByRegisteredByUserId(userId);
-        long usedSerials = banknoteSerialRepository.countUsedByRegisteredByUserId(userId);
+        long usedSerials = mySerials - banknoteSerialRepository.countByRegisteredByUserIdAndIsUsedFalse(userId);
         long availableSerials = Math.max(0L, mySerials - usedSerials);
         return BanknoteSerialSummaryResponse.builder()
                 .totalSerials(banknoteSerialRepository.count())

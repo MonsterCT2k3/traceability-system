@@ -13,19 +13,23 @@ public interface CartonRepository extends JpaRepository<Carton, String> {
 
     Optional<Carton> findByCartonCode(String cartonCode);
 
-    List<Carton> findByPalletIdOrderByCreatedAtDesc(String palletId);
+    @Query("SELECT c FROM Carton c WHERE c.pallet.id = :palletId ORDER BY c.createdAt DESC")
+    List<Carton> findByPalletIdOrderByCreatedAtDesc(@Param("palletId") String palletId);
+
     @Query("SELECT c FROM Carton c WHERE c.manufacturerId = :manufacturerId OR (c.manufacturerId IS NULL AND (c.ownerId = :manufacturerId OR EXISTS (SELECT 1 FROM TransferRecord tr WHERE tr.targetId = CAST(c.id AS string) AND tr.targetType = 'CARTON' AND tr.fromUserId = :manufacturerId))) ORDER BY c.createdAt DESC")
     List<Carton> findByManufacturerIdWithFallback(@Param("manufacturerId") String manufacturerId);
 
-    @Query("SELECT c FROM Carton c WHERE c.productId = :productId AND c.ownerId = :ownerId AND c.status = 'SHIPPING' ORDER BY c.createdAt ASC")
+    @Query("SELECT c FROM Carton c WHERE c.product.id = :productId AND c.ownerId = :ownerId AND c.status = 'SHIPPING' ORDER BY c.createdAt ASC")
     List<Carton> findAvailableForDelivery(@Param("productId") String productId, @Param("ownerId") String ownerId, org.springframework.data.domain.Pageable pageable);
 
-    @Query("SELECT c FROM Carton c WHERE c.productId = :productId AND c.ownerId = :ownerId AND (c.status = 'IN_STOCK' OR c.status IS NULL) ORDER BY c.createdAt ASC")
+    @Query("SELECT c FROM Carton c WHERE c.product.id = :productId AND c.ownerId = :ownerId AND (c.status = 'IN_STOCK' OR c.status IS NULL) ORDER BY c.createdAt ASC")
     List<Carton> findAvailableForShipping(@Param("productId") String productId, @Param("ownerId") String ownerId, org.springframework.data.domain.Pageable pageable);
 
-    List<Carton> findByProductIdAndOwnerIdOrderByCreatedAtAsc(String productId, String ownerId, org.springframework.data.domain.Pageable pageable);
+    @Query("SELECT c FROM Carton c WHERE c.product.id = :productId AND c.ownerId = :ownerId ORDER BY c.createdAt ASC")
+    List<Carton> findByProductIdAndOwnerIdOrderByCreatedAtAsc(@Param("productId") String productId, @Param("ownerId") String ownerId, org.springframework.data.domain.Pageable pageable);
 
-    long countByPalletId(String palletId);
+    @Query("SELECT COUNT(c) FROM Carton c WHERE c.pallet.id = :palletId")
+    long countByPalletId(@Param("palletId") String palletId);
 
     @Query(value = """
             SELECT
