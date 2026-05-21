@@ -1,6 +1,7 @@
 package vn.edu.kma.identity_service.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -17,8 +18,10 @@ public class RoleRequest {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(nullable = false)
-    private String userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonBackReference
+    private User user;
 
     @Column(nullable = false)
     private String requestedRole;

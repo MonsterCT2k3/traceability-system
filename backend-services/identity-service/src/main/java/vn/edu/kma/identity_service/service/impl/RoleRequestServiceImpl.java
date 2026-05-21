@@ -41,7 +41,7 @@ public class RoleRequestServiceImpl implements RoleRequestService {
         }
 
         // Kiểm tra xem user đã có đơn PENDING nào chưa
-        if (roleRequestRepository.findByUserIdAndStatus(userId, "PENDING").isPresent()) {
+        if (roleRequestRepository.findByUser_IdAndStatus(userId, "PENDING").isPresent()) {
             throw new RuntimeException("Bạn đang có một yêu cầu chờ duyệt. Vui lòng đợi!");
         }
 
@@ -51,7 +51,7 @@ public class RoleRequestServiceImpl implements RoleRequestService {
         }
 
         RoleRequest request = RoleRequest.builder()
-                .userId(userId)
+                .user(user)
                 .requestedRole(requestedRole.name())
                 .description(dto.getDescription())
                 .status("PENDING")
@@ -64,11 +64,8 @@ public class RoleRequestServiceImpl implements RoleRequestService {
     @Override
     @Transactional(readOnly = true)
     public List<RoleRequestResponse> getMyRequests(String userId) {
-        return roleRequestRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(req -> {
-                    User u = userRepository.findById(req.getUserId()).orElse(null);
-                    return mapToResponse(req, u);
-                })
+        return roleRequestRepository.findByUser_IdOrderByCreatedAtDesc(userId).stream()
+                .map(req -> mapToResponse(req, req.getUser()))
                 .collect(Collectors.toList());
     }
 
@@ -76,10 +73,7 @@ public class RoleRequestServiceImpl implements RoleRequestService {
     @Transactional(readOnly = true)
     public List<RoleRequestResponse> getPendingRequests() {
         return roleRequestRepository.findByStatusOrderByCreatedAtDesc("PENDING").stream()
-                .map(req -> {
-                    User u = userRepository.findById(req.getUserId()).orElse(null);
-                    return mapToResponse(req, u);
-                })
+                .map(req -> mapToResponse(req, req.getUser()))
                 .collect(Collectors.toList());
     }
 
@@ -93,14 +87,15 @@ public class RoleRequestServiceImpl implements RoleRequestService {
             throw new RuntimeException("Yêu cầu này đã được xử lý");
         }
 
+        User user = request.getUser();
+
         // Đổi role user và lưu description
-        userManagementService.updateUserRoleAndDescription(request.getUserId(), request.getRequestedRole(), request.getDescription());
+        userManagementService.updateUserRoleAndDescription(user.getId(), request.getRequestedRole(), request.getDescription());
 
         // Cập nhật trạng thái đơn
         request.setStatus("APPROVED");
         RoleRequest saved = roleRequestRepository.save(request);
 
-        User user = userRepository.findById(saved.getUserId()).orElse(null);
         return mapToResponse(saved, user);
     }
 
@@ -114,17 +109,17 @@ public class RoleRequestServiceImpl implements RoleRequestService {
             throw new RuntimeException("Yêu cầu này đã được xử lý");
         }
 
+        User user = request.getUser();
         request.setStatus("REJECTED");
         RoleRequest saved = roleRequestRepository.save(request);
 
-        User user = userRepository.findById(saved.getUserId()).orElse(null);
         return mapToResponse(saved, user);
     }
 
     private RoleRequestResponse mapToResponse(RoleRequest req, User user) {
         return RoleRequestResponse.builder()
                 .id(req.getId())
-                .userId(req.getUserId())
+                .userId(user != null ? user.getId() : null)
                 .username(user != null ? user.getUsername() : "Unknown")
                 .fullName(user != null ? user.getFullName() : "Unknown")
                 .requestedRole(req.getRequestedRole())

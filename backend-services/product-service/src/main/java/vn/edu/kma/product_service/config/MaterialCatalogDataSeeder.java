@@ -56,6 +56,10 @@ public class MaterialCatalogDataSeeder implements ApplicationRunner {
                         "Cà phê nhân xanh",
                         "Cà phê bột pha phin"
                 )),
+                new Cat("FRUIT", "Hoa quả", 25, List.of(
+                        "Xoài", "Thanh long", "Dứa (Thơm)", "Chuối", "Dưa hấu",
+                        "Táo", "Vải", "Chôm chôm", "Bưởi", "Cam"
+                )),
                 new Cat("OTHER", "Khác", 40, List.of(
                         "Nguyên liệu tổng hợp A",
                         "Nguyên liệu tổng hợp B",
@@ -78,6 +82,37 @@ public class MaterialCatalogDataSeeder implements ApplicationRunner {
                     log.info("Appended Nha đam to Rau củ category");
                 }
             });
+
+            // Đảm bảo category Hoa quả tồn tại và có đủ items
+            MaterialCategory fruitCat = categoryRepository.findByLabelAndActiveTrue("Hoa quả")
+                    .orElseGet(() -> {
+                        MaterialCategory c = categoryRepository.save(MaterialCategory.builder()
+                                .code("FRUIT")
+                                .label("Hoa quả")
+                                .sortOrder(25)
+                                .active(true)
+                                .build());
+                        log.info("Created Hoa quả category");
+                        return c;
+                    });
+
+            List<String> fruits = List.of(
+                    "Xoài", "Thanh long", "Dứa (Thơm)", "Chuối", "Dưa hấu",
+                    "Nhãn", "Vải", "Chôm chôm", "Bưởi", "Cam"
+            );
+            int sortIdx = 10;
+            for (String name : fruits) {
+                if (!itemRepository.existsByCategory_IdAndNameAndActiveTrue(fruitCat.getId(), name)) {
+                    itemRepository.save(MaterialItem.builder()
+                            .category(fruitCat)
+                            .name(name)
+                            .sortOrder(sortIdx)
+                            .active(true)
+                            .build());
+                    log.info("Appended {} to Hoa quả category", name);
+                }
+                sortIdx += 10;
+            }
             return;
         }
 

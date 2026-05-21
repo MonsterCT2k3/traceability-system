@@ -35,7 +35,9 @@ public interface BanknoteSerialRepository extends JpaRepository<BanknoteSerial, 
     );
 
     // Đánh dấu hàng loạt serial là đã sử dụng sau khi gán vào ProductUnit
-    @Modifying
+    // flushAutomatically = true: buộc Hibernate flush ProductUnit INSERT xuống DB trước khi chạy UPDATE này,
+    // tránh FK violation do Hibernate chưa kịp flush pending INSERT của product_units.
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE BanknoteSerial b SET b.isUsed = true, b.assignedUnit = :unit WHERE b.serialValue = :serialValue")
     void markAsUsed(@Param("serialValue") String serialValue,
                     @Param("unit") vn.edu.kma.product_service.entity.ProductUnit unit);

@@ -1,6 +1,7 @@
 package vn.edu.kma.identity_service.entity;
 
 import jakarta.persistence.*;
+import java.util.List;
 import lombok.*;
 
 @Entity
@@ -27,6 +28,9 @@ public class User {
     
     @Column(columnDefinition = "TEXT")
     private String description;
-    
+
     private String location;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<RoleRequest> roleRequests;
 }

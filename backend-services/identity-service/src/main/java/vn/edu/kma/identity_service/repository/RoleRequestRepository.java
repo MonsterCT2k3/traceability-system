@@ -10,6 +10,6 @@ import java.util.Optional;
 @Repository
 public interface RoleRequestRepository extends JpaRepository<RoleRequest, String> {
     List<RoleRequest> findByStatusOrderByCreatedAtDesc(String status);
-    List<RoleRequest> findByUserIdOrderByCreatedAtDesc(String userId);
-    Optional<RoleRequest> findByUserIdAndStatus(String userId, String status);
+    List<RoleRequest> findByUser_IdOrderByCreatedAtDesc(String userId);
+    Optional<RoleRequest> findByUser_IdAndStatus(String userId, String status);
 }
