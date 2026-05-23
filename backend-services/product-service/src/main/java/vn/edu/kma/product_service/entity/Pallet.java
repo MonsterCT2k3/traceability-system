@@ -74,7 +74,7 @@ public class Pallet {
     /**
      * Thuộc Product (1 product nhiều pallet).
      */
-    @Column(nullable = false)
+    @Column(nullable = false, length = 36)
     private String productId;
 
     /**

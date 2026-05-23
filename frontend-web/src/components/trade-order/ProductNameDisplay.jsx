@@ -7,7 +7,7 @@ const { Text } = Typography;
 
 const fetchProductDetails = async (productId) => {
   if (!productId) return null;
-  const res = await api.get(`/product/api/v1/products/${productId}`);
+  const res = await api.get(`/catalog/api/v1/products/${productId}`);
   return res.data?.result;
 };
 

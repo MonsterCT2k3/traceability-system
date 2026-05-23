@@ -25,7 +25,7 @@ const ManufactureProductionManagement = () => {
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ['manufacturerProducts'],
     queryFn: async () => {
-      const res = await api.get('/product/api/v1/products');
+      const res = await api.get('/catalog/api/v1/products');
       return res.data?.result ?? [];
     },
   });

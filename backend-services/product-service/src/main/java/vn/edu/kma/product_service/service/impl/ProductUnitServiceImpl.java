@@ -22,6 +22,7 @@ import vn.edu.kma.product_service.dto.response.ProductUnitPublicTraceResponse;
 import vn.edu.kma.product_service.dto.response.TraceHistoryEvent;
 import vn.edu.kma.product_service.dto.response.VerifyHashesResponse;
 import vn.edu.kma.product_service.entity.*;
+import vn.edu.kma.product_service.client.CatalogClient;
 import vn.edu.kma.product_service.repository.*;
 import vn.edu.kma.product_service.service.ProductUnitService;
 import vn.edu.kma.product_service.utils.BlockchainVerificationUtils;
@@ -36,7 +37,7 @@ public class ProductUnitServiceImpl implements ProductUnitService {
     private final CartonRepository cartonRepository;
     private final ProductUnitRepository productUnitRepository;
     private final PalletRepository palletRepository;
-    private final ProductRepository productRepository;
+    private final CatalogClient catalogClient;
     private final BanknoteSerialRepository banknoteSerialRepository;
     private final RawBatchRepository rawBatchRepository;
     private final TransferRecordRepository transferRecordRepository;
@@ -103,8 +104,8 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 ProductUnit saved = productUnitRepository.save(ProductUnit.builder()
                         .carton(carton)
                         .pallet(carton.getPallet())
-                        .product(carton.getProduct())
                         .unitSerial(unitSerial)
+                        .productId(carton.getProductId())
                         .ownerId(userId)
                         .manufacturerId(carton.getManufacturerId())
                         .build());
@@ -221,8 +222,11 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 .orElseThrow(() -> new RuntimeException("Carton không tồn tại"));
         Pallet pallet = palletRepository.findById(unit.getPalletId())
                 .orElseThrow(() -> new RuntimeException("Pallet không tồn tại"));
-        Product product = productRepository.findById(unit.getProductId())
-                .orElseThrow(() -> new RuntimeException("Sản phẩm catalog không tồn tại"));
+        ApiResponse<Map<String, Object>> pRes = catalogClient.getProductById(unit.getProductId());
+        if (pRes == null || pRes.getResult() == null) {
+            throw new RuntimeException("Sản phẩm catalog không tồn tại");
+        }
+        Map<String, Object> product = pRes.getResult();
 
         int scanDisplay = unit.getScanCount() == null ? 0 : unit.getScanCount();
 
@@ -252,10 +256,10 @@ public class ProductUnitServiceImpl implements ProductUnitService {
         return ProductUnitPublicTraceResponse.builder()
                 .unitId(unit.getId())
                 .unitSerial(unit.getUnitSerial())
-                .productId(product.getId())
-                .productName(product.getName())
-                .productDescription(product.getDescription())
-                .productImageUrl(product.getImageUrl())
+                .productId(unit.getProductId())
+                .productName((String) product.get("name"))
+                .productDescription((String) product.get("description"))
+                .productImageUrl((String) product.get("imageUrl"))
                 .cartonCode(carton.getCartonCode())
                 .palletCode(pallet.getPalletCode())
                 .palletName(pallet.getPalletName())

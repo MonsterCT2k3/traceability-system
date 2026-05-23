@@ -1,6 +1,6 @@
-package vn.edu.kma.product_service.service;
+package vn.edu.kma.catalog_service.service;
 
-import vn.edu.kma.product_service.dto.response.MaterialCategoryCatalogResponse;
+import vn.edu.kma.catalog_service.dto.response.MaterialCategoryCatalogResponse;
 
 import java.util.List;
 

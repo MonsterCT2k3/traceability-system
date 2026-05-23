@@ -1,15 +1,15 @@
-package vn.edu.kma.product_service.service.impl;
+package vn.edu.kma.catalog_service.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.edu.kma.product_service.dto.response.MaterialCategoryCatalogResponse;
-import vn.edu.kma.product_service.dto.response.MaterialItemOptionResponse;
-import vn.edu.kma.product_service.entity.MaterialCategory;
-import vn.edu.kma.product_service.entity.MaterialItem;
-import vn.edu.kma.product_service.repository.MaterialCategoryRepository;
-import vn.edu.kma.product_service.repository.MaterialItemRepository;
-import vn.edu.kma.product_service.service.MaterialCatalogService;
+import vn.edu.kma.catalog_service.dto.response.MaterialCategoryCatalogResponse;
+import vn.edu.kma.catalog_service.dto.response.MaterialItemOptionResponse;
+import vn.edu.kma.catalog_service.entity.MaterialCategory;
+import vn.edu.kma.catalog_service.entity.MaterialItem;
+import vn.edu.kma.catalog_service.repository.MaterialCategoryRepository;
+import vn.edu.kma.catalog_service.repository.MaterialItemRepository;
+import vn.edu.kma.catalog_service.service.MaterialCatalogService;
 
 import java.util.List;
 

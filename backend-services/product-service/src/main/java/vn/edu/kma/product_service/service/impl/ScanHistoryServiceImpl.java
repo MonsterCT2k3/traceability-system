@@ -10,12 +10,15 @@ import vn.edu.kma.product_service.dto.request.ScanHistoryRequest;
 import vn.edu.kma.product_service.dto.response.ScanHistoryResponse;
 import vn.edu.kma.product_service.entity.ProductUnit;
 import vn.edu.kma.product_service.entity.ScanHistory;
+import vn.edu.kma.product_service.client.CatalogClient;
 import vn.edu.kma.product_service.repository.ProductUnitRepository;
 import vn.edu.kma.product_service.repository.ScanHistoryRepository;
 import vn.edu.kma.product_service.service.ScanHistoryService;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import vn.edu.kma.common.dto.response.ApiResponse;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class ScanHistoryServiceImpl implements ScanHistoryService {
 
     private final ScanHistoryRepository scanHistoryRepository;
     private final ProductUnitRepository productUnitRepository;
+    private final CatalogClient catalogClient;
 
     @Override
     public void recordScan(ScanHistoryRequest request, String tokenHeader) {
@@ -62,11 +66,16 @@ public class ScanHistoryServiceImpl implements ScanHistoryService {
                 String productName = "Unknown Product";
                 String productImage = null;
 
-                // Truy cập trực tiếp qua quan hệ JPA (không cần query thêm)
                 ProductUnit unit = history.getProductUnit();
-                if (unit != null && unit.getProduct() != null) {
-                    productName = unit.getProduct().getName();
-                    productImage = unit.getProduct().getImageUrl();
+                if (unit != null && unit.getProductId() != null) {
+                    try {
+                        ApiResponse<Map<String, Object>> pRes = catalogClient.getProductById(unit.getProductId());
+                        if (pRes != null && pRes.getResult() != null) {
+                            Map<String, Object> pMap = pRes.getResult();
+                            productName = (String) pMap.get("name");
+                            productImage = (String) pMap.get("imageUrl");
+                        }
+                    } catch(Exception ignored) {}
                 }
 
                 return ScanHistoryResponse.builder()

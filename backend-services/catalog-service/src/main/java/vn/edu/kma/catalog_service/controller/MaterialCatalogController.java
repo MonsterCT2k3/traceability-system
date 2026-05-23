@@ -1,4 +1,4 @@
-package vn.edu.kma.product_service.controller;
+package vn.edu.kma.catalog_service.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import vn.edu.kma.common.dto.response.ApiResponse;
-import vn.edu.kma.product_service.dto.response.MaterialCategoryCatalogResponse;
-import vn.edu.kma.product_service.service.MaterialCatalogService;
+import vn.edu.kma.catalog_service.dto.response.MaterialCategoryCatalogResponse;
+import vn.edu.kma.catalog_service.service.MaterialCatalogService;
 
 import java.util.List;
 

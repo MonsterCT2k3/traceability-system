@@ -24,9 +24,8 @@ public class Carton {
     /**
      * Denormalize theo pallet để truy vấn nhanh theo catalog.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @Column(nullable = false, length = 36)
+    private String productId;
 
     @Column(nullable = false, unique = true)
     private String cartonCode;
@@ -67,6 +66,6 @@ public class Carton {
     }
 
     public String getProductId() {
-        return product != null ? product.getId() : null;
+        return productId;
     }
 }

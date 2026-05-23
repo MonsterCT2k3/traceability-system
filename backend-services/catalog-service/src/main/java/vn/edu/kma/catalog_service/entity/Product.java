@@ -1,4 +1,4 @@
-package vn.edu.kma.product_service.entity;
+package vn.edu.kma.catalog_service.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

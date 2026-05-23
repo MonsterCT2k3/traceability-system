@@ -180,7 +180,7 @@ const GoodsManagement = () => {
   const { data: manifestRows = [], isLoading } = useQuery({
     queryKey: ['goodsPackingManifestByProduct'],
     queryFn: async () => {
-      const res = await api.get('/product/api/v1/products/packing-manifest/my');
+      const res = await api.get('/product/api/v1/cartons/packing/manifest/my');
       return res.data?.result ?? [];
     },
   });

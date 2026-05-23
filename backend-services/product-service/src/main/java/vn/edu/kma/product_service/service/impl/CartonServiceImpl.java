@@ -7,10 +7,8 @@ import org.springframework.stereotype.Service;
 import vn.edu.kma.product_service.dto.request.CartonCreateRequest;
 import vn.edu.kma.product_service.entity.Carton;
 import vn.edu.kma.product_service.entity.Pallet;
-import vn.edu.kma.product_service.entity.Product;
 import vn.edu.kma.product_service.repository.CartonRepository;
 import vn.edu.kma.product_service.repository.PalletRepository;
-import vn.edu.kma.product_service.repository.ProductRepository;
 import vn.edu.kma.product_service.service.CartonService;
 
 @Service
@@ -20,7 +18,6 @@ public class CartonServiceImpl implements CartonService {
 
     private final PalletRepository palletRepository;
     private final CartonRepository cartonRepository;
-    private final ProductRepository productRepository;
 
     @Override
     public Carton createCarton(String palletId, CartonCreateRequest request, String tokenHeader) {
@@ -43,8 +40,7 @@ public class CartonServiceImpl implements CartonService {
 
             Carton saved = cartonRepository.save(Carton.builder()
                     .pallet(pallet)
-                    .product(productRepository.findById(pallet.getProductId())
-                            .orElseThrow(() -> new RuntimeException("Product không tồn tại")))
+                    .productId(pallet.getProductId())
                     .cartonCode(code)
                     .plannedUnitCount(request.getPlannedUnitCount())
                     .unitLabel(trimToNull(request.getUnitLabel()))

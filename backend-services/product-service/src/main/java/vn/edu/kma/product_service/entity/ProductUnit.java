@@ -25,9 +25,8 @@ public class ProductUnit {
     @JoinColumn(name = "pallet_id", nullable = false)
     private Pallet pallet;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @Column(nullable = false, length = 36)
+    private String productId;
 
     /**
      * Mã serial in trên bao bì / dùng cho trace (duy nhất toàn hệ thống).
@@ -70,6 +69,6 @@ public class ProductUnit {
     }
 
     public String getProductId() {
-        return product != null ? product.getId() : null;
+        return productId;
     }
 }

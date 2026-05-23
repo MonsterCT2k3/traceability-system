@@ -1,4 +1,4 @@
-package vn.edu.kma.product_service.config;
+package vn.edu.kma.catalog_service.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,10 +7,10 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import vn.edu.kma.product_service.entity.MaterialCategory;
-import vn.edu.kma.product_service.entity.MaterialItem;
-import vn.edu.kma.product_service.repository.MaterialCategoryRepository;
-import vn.edu.kma.product_service.repository.MaterialItemRepository;
+import vn.edu.kma.catalog_service.entity.MaterialCategory;
+import vn.edu.kma.catalog_service.entity.MaterialItem;
+import vn.edu.kma.catalog_service.repository.MaterialCategoryRepository;
+import vn.edu.kma.catalog_service.repository.MaterialItemRepository;
 
 import java.util.List;
 

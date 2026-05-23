@@ -15,7 +15,7 @@ import vn.edu.kma.product_service.dto.request.PalletAnchorRequest;
 import vn.edu.kma.product_service.dto.response.PalletSummaryResponse;
 import vn.edu.kma.product_service.entity.Pallet;
 import vn.edu.kma.product_service.repository.PalletRepository;
-import vn.edu.kma.product_service.repository.ProductRepository;
+import vn.edu.kma.product_service.client.CatalogClient;
 import vn.edu.kma.product_service.service.PalletService;
 
 import java.nio.charset.StandardCharsets;
@@ -32,7 +32,7 @@ public class PalletServiceImpl implements PalletService {
     private static final String SCHEMA_VERSION = "1";
 
     private final BlockchainClient blockchainClient;
-    private final ProductRepository productRepository;
+    private final CatalogClient catalogClient;
     private final PalletRepository palletRepository;
     private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -40,7 +40,8 @@ public class PalletServiceImpl implements PalletService {
     public Map<String, String> anchorPallet(String productId, PalletAnchorRequest request, String tokenHeader) {
         try {
             String processorId = extractUserIdFromToken(tokenHeader);
-            if (!productRepository.existsById(productId)) {
+            ApiResponse<Map<String, Object>> pRes = catalogClient.getProductById(productId);
+            if (pRes == null || pRes.getResult() == null) {
                 throw new RuntimeException("Product not found: " + productId);
             }
 

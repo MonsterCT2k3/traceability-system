@@ -17,7 +17,6 @@ import vn.edu.kma.product_service.dto.request.RawBatchMergeRequest;
 import vn.edu.kma.product_service.dto.response.RawBatchResponse;
 import vn.edu.kma.product_service.entity.RawBatch;
 import vn.edu.kma.product_service.repository.RawBatchRepository;
-import vn.edu.kma.product_service.service.MaterialCatalogService;
 import vn.edu.kma.product_service.service.RawBatchService;
 import org.springframework.kafka.core.KafkaTemplate;
 
@@ -42,18 +41,16 @@ public class RawBatchServiceImpl implements RawBatchService {
     private final BlockchainClient blockchainClient;
     private final RawBatchRepository rawBatchRepository;
     private final TransactionTemplate transactionTemplate;
-    private final MaterialCatalogService materialCatalogService;
+
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public RawBatchServiceImpl(BlockchainClient blockchainClient,
                                RawBatchRepository rawBatchRepository,
                                PlatformTransactionManager transactionManager,
-                               MaterialCatalogService materialCatalogService,
                                KafkaTemplate<String, Object> kafkaTemplate) {
         this.blockchainClient = blockchainClient;
         this.rawBatchRepository = rawBatchRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
-        this.materialCatalogService = materialCatalogService;
         this.kafkaTemplate = kafkaTemplate;
     }
 
@@ -61,9 +58,7 @@ public class RawBatchServiceImpl implements RawBatchService {
     public Map<String, String> createRawBatch(RawBatchCreateRequest request, String token) {
         try {
             String producerId = extractUserIdFromToken(token);
-            if (!materialCatalogService.isValidPair(request.getMaterialType(), request.getMaterialName())) {
-                throw new RuntimeException("Loại hoặc tên nguyên liệu không có trong danh mục hệ thống");
-            }
+
             String rawBatchCode = "RAW-" + generateShortCode();
             String batchIdHex = randomBytes32Hex();
 

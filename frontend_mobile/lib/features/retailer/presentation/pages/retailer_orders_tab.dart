@@ -49,7 +49,7 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
       _errorMeta = null;
     });
     try {
-      final productsRes = await _api.get('/product/api/v1/products');
+      final productsRes = await _api.get('/catalog/api/v1/products');
       final productsRaw = productsRes.data;
       final products = <_ProductItem>[];
       if (productsRaw is Map && productsRaw['result'] is List) {

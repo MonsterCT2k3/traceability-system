@@ -1,4 +1,4 @@
-package vn.edu.kma.product_service.controller;
+package vn.edu.kma.catalog_service.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,17 +7,15 @@ import org.springframework.http.MediaType;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import vn.edu.kma.product_service.config.OpenApiConfig;
+import vn.edu.kma.catalog_service.config.OpenApiConfig;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.kma.common.dto.response.ApiResponse;
-import vn.edu.kma.product_service.dto.request.ProductRequest;
-import vn.edu.kma.product_service.config.TraceFrontendConfig;
-import vn.edu.kma.product_service.dto.response.ProductPackingManifestResponse;
-import vn.edu.kma.product_service.dto.response.ProductPackingSummaryResponse;
-import vn.edu.kma.product_service.entity.Product;
-import vn.edu.kma.product_service.service.ProductService;
-import vn.edu.kma.product_service.utils.QRCodeGenerator;
+import vn.edu.kma.catalog_service.dto.request.ProductRequest;
+import vn.edu.kma.catalog_service.config.TraceFrontendConfig;
+import vn.edu.kma.catalog_service.entity.Product;
+import vn.edu.kma.catalog_service.service.ProductService;
+import vn.edu.kma.catalog_service.utils.QRCodeGenerator;
 
 import java.util.List;
 
@@ -38,31 +36,6 @@ public class ProductController {
                 .build());
     }
 
-    @GetMapping("/packing-summary/my")
-    @PreAuthorize("hasAnyRole('MANUFACTURER','ADMIN')")
-    @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
-    public ResponseEntity<ApiResponse<List<ProductPackingSummaryResponse>>> getMyPackingSummary(
-            @RequestHeader("Authorization") String tokenHeader
-    ) {
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.<List<ProductPackingSummaryResponse>>builder()
-                .code(200)
-                .message("Lấy thống kê thành phẩm đã đóng gói thành công")
-                .result(productService.getMyPackingSummary(tokenHeader))
-                .build());
-    }
-
-    @GetMapping("/packing-manifest/my")
-    @PreAuthorize("hasAnyRole('MANUFACTURER','ADMIN')")
-    @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
-    public ResponseEntity<ApiResponse<List<ProductPackingManifestResponse>>> getMyPackingManifest(
-            @RequestHeader("Authorization") String tokenHeader
-    ) {
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.<List<ProductPackingManifestResponse>>builder()
-                .code(200)
-                .message("Lấy manifest thùng và serial đã đóng gói thành công")
-                .result(productService.getMyPackingManifest(tokenHeader))
-                .build());
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<Product>> getProductById(@PathVariable String id) {

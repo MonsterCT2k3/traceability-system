@@ -43,7 +43,7 @@ const SupplierRawBatchManagement = () => {
   const { data: materialCatalog, isLoading: catalogLoading } = useQuery({
     queryKey: ['materialCatalog'],
     queryFn: async () => {
-      const response = await api.get('/product/api/v1/material-catalog');
+      const response = await api.get('/catalog/api/v1/material-catalog');
       return response.data.result;
     },
     staleTime: 30 * 60 * 1000,

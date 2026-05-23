@@ -27,7 +27,7 @@ const ProductManagement = () => {
   const { data: products, isLoading } = useQuery({
     queryKey: ['manufacturerProducts'],
     queryFn: async () => {
-      const res = await api.get('/product/api/v1/products');
+      const res = await api.get('/catalog/api/v1/products');
       return res.data?.result ?? [];
     },
   });
@@ -36,11 +36,11 @@ const ProductManagement = () => {
     mutationFn: async (payload) => {
       if (payload.kind === 'multipart') {
         const { formData } = payload;
-        return api.post('/product/api/v1/products', formData, {
+        return api.post('/catalog/api/v1/products', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
-      return api.post('/product/api/v1/products', payload.body, {
+      return api.post('/catalog/api/v1/products', payload.body, {
         headers: { 'Content-Type': 'application/json' },
       });
     },

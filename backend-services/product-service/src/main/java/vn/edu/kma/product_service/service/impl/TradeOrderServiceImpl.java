@@ -25,7 +25,7 @@ import vn.edu.kma.product_service.dto.response.TradeOrderLineResponse;
 import vn.edu.kma.product_service.dto.response.TradeOrderResponse;
 import vn.edu.kma.product_service.entity.Carton;
 import vn.edu.kma.product_service.entity.Pallet;
-import vn.edu.kma.product_service.entity.Product;
+import vn.edu.kma.product_service.client.CatalogClient;
 import vn.edu.kma.product_service.entity.ProductUnit;
 import vn.edu.kma.product_service.entity.RawBatch;
 import vn.edu.kma.product_service.entity.TradeOrder;
@@ -33,7 +33,6 @@ import vn.edu.kma.product_service.entity.TradeOrderLine;
 import vn.edu.kma.product_service.entity.TransferRecord;
 import vn.edu.kma.product_service.repository.CartonRepository;
 import vn.edu.kma.product_service.repository.PalletRepository;
-import vn.edu.kma.product_service.repository.ProductRepository;
 import vn.edu.kma.product_service.repository.ProductUnitRepository;
 import vn.edu.kma.product_service.repository.RawBatchRepository;
 import vn.edu.kma.product_service.repository.TradeOrderRepository;
@@ -57,7 +56,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
 
     private final TradeOrderRepository tradeOrderRepository;
     private final RawBatchRepository rawBatchRepository;
-    private final ProductRepository productRepository;
+    private final CatalogClient catalogClient;
     private final CartonRepository cartonRepository;
     private final ProductUnitRepository productUnitRepository;
     private final PalletRepository palletRepository;
@@ -518,9 +517,12 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             if (lr.getQuantityCartons() == null || lr.getQuantityCartons() < 1) {
                 throw new RuntimeException("Dòng " + i + ": quantityCartons phải ≥ 1");
             }
-            Product p = productRepository.findById(productId.trim())
-                    .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại: " + productId));
-            if (!sellerId.equals(p.getOwnerId())) {
+            ApiResponse<Map<String, Object>> pRes = catalogClient.getProductById(productId.trim());
+            if (pRes == null || pRes.getResult() == null) {
+                throw new RuntimeException("Sản phẩm không tồn tại: " + productId);
+            }
+            Map<String, Object> p = pRes.getResult();
+            if (!sellerId.equals(p.get("ownerId"))) {
                 throw new RuntimeException("Sản phẩm không thuộc người bán đã chọn");
             }
             if (lr.getTargetRawBatchId() != null || lr.getQuantityRequested() != null || lr.getUnit() != null) {
