@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import vn.edu.kma.api_gateway.client.IdentityClient;
 import vn.edu.kma.api_gateway.security.PublicRouteMatcher;
 import vn.edu.kma.common.dto.request.IntrospectRequest;
 import vn.edu.kma.common.dto.response.ApiResponse;
@@ -21,10 +21,7 @@ import java.io.IOException;
 @Component
 public class AuthenticationFilter implements Filter {
 
-    @Value("${app.services.identity.introspect-url}")
-    private String identityServiceUrl;
-
-    private final RestTemplate restTemplate;
+    private final IdentityClient identityClient;
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -44,8 +41,7 @@ public class AuthenticationFilter implements Filter {
             IntrospectRequest introspectRequest = new IntrospectRequest(token);
 
             try {
-                // Sử dụng URL từ cấu hình thay vì hardcode
-                var identityResponse = restTemplate.postForObject(identityServiceUrl, introspectRequest, ApiResponse.class);
+                var identityResponse = identityClient.introspectToken(introspectRequest);
 
                 // Kiểm tra phản hồi từ Identity Service
                 if (identityResponse != null && identityResponse.getCode() == 200) {

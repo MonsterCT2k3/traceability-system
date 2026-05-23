@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -32,10 +32,7 @@ public class WebConfig implements WebMvcConfigurer {
         if (headers != null && !headers.isEmpty()) {
             registration.allowedHeaders(headers.toArray(new String[0]));
         }
-    }
-
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+        // Thêm Allow-Credentials: true vì SockJS mặc định gửi kèm credentials
+        registration.allowCredentials(true);
     }
 }

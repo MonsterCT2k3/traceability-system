@@ -60,6 +60,14 @@
 			<artifactId>common-library</artifactId>
 			<version>1.0.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
@@ -99,6 +107,19 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+					<!--
+						Tối ưu JVM cho API Gateway (proxy thuần, không có DB):
+						- Xms64m  : Heap nhỏ khi khởi động
+						- Xmx192m : Gateway không xử lý nghiệp vụ nặng, 192MB là đủ
+						- SerialGC: Độ trễ thấp cho tác vụ proxy/routing ngắn hạn
+					-->
+					<jvmArguments>
+						-Xms64m
+						-Xmx192m
+						-XX:+UseSerialGC
+						-XX:MaxMetaspaceSize=96m
+						-Duser.timezone=Asia/Ho_Chi_Minh
+					</jvmArguments>
 				</configuration>
 			</plugin>
 		</plugins>

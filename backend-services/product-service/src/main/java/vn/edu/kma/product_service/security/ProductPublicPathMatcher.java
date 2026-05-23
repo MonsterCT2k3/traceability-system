@@ -23,6 +23,10 @@ public final class ProductPublicPathMatcher {
             return true;
         }
 
+        if (path.startsWith("/ws")) {
+            return true;
+        }
+
         if (isPublicGet(method, path)) {
             return true;
         }

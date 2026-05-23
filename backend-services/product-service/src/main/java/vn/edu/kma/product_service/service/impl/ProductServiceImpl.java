@@ -4,7 +4,7 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.client.RestTemplate;
+import vn.edu.kma.product_service.service.IdentityClient;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.kma.product_service.dto.request.ProductRequest;
 import vn.edu.kma.product_service.dto.response.PackingUnitSerialItem;
@@ -31,10 +31,7 @@ public class ProductServiceImpl implements ProductService {
     private final CartonRepository cartonRepository;
     private final ProductUnitRepository productUnitRepository;
     private final CloudinaryService cloudinaryService;
-    private final RestTemplate restTemplate;
-
-    @Value("${app.services.identity.url:http://localhost:8081}")
-    private String identityServiceUrl;
+    private final IdentityClient identityClient;
 
     @Override
     public Product createProduct(ProductRequest request, MultipartFile image, String token) {
@@ -134,10 +131,9 @@ public class ProductServiceImpl implements ProductService {
     private String fetchOwnerName(String actorId) {
         if (actorId == null || actorId.isBlank()) return "Unknown";
         try {
-            String url = identityServiceUrl + "/api/v1/users/directory/by-id/" + actorId;
-            vn.edu.kma.common.dto.response.ApiResponse<?> response = restTemplate.getForObject(url, vn.edu.kma.common.dto.response.ApiResponse.class);
+            vn.edu.kma.common.dto.response.ApiResponse<java.util.Map<String, Object>> response = identityClient.getUserById(actorId);
             if (response != null && response.getResult() != null) {
-                java.util.Map<?, ?> result = (java.util.Map<?, ?>) response.getResult();
+                java.util.Map<String, Object> result = response.getResult();
                 Object fullNameObj = result.get("fullName");
                 if (fullNameObj != null && !fullNameObj.toString().isBlank()) {
                     return fullNameObj.toString();

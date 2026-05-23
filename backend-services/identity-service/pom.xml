@@ -136,6 +136,20 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+					<!--
+						Tối ưu JVM cho Identity Service (tải nhẹ, chủ yếu auth/login):
+						- Xms64m  : Heap ban đầu nhỏ, không cấp phát thừa khi mới khởi động
+						- Xmx256m : Giới hạn heap tối đa 256MB (đủ cho service xác thực)
+						- SerialGC: GC đơn luồng, phù hợp service ít concurrent — pause ngắn hơn G1GC
+						- MaxMetaspaceSize: Giới hạn metaspace tránh leak class loader
+					-->
+					<jvmArguments>
+						-Xms64m
+						-Xmx256m
+						-XX:+UseSerialGC
+						-XX:MaxMetaspaceSize=128m
+						-Duser.timezone=Asia/Ho_Chi_Minh
+					</jvmArguments>
 				</configuration>
 			</plugin>
 		</plugins>

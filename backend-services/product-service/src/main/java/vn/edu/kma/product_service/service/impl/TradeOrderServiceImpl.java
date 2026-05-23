@@ -13,7 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import vn.edu.kma.product_service.service.BlockchainClient;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.common.security.UserRole;
 import vn.edu.kma.product_service.domain.OrderType;
@@ -62,10 +62,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     private final ProductUnitRepository productUnitRepository;
     private final PalletRepository palletRepository;
     private final TransferRecordRepository transferRecordRepository;
-    private final RestTemplate restTemplate;
-
-    @Value("${spring.url.blockchain-service}")
-    private String blockchainBaseUrl;
+    private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
     @Transactional
@@ -461,27 +458,18 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             return null;
         }
         try {
-            Map<String, String> body = new HashMap<>();
-            body.put("batchIdHex", batchIdHex.trim());
-            body.put("fromUserId", fromUserId);
-            body.put("toUserId", toUserId);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
-
-            ResponseEntity<ApiResponse<String>> resp = restTemplate.exchange(
-                    blockchainBaseUrl + "/ownership-change",
-                    HttpMethod.POST,
-                    entity,
-                    new ParameterizedTypeReference<ApiResponse<String>>() {}
-            );
-            ApiResponse<String> api = resp.getBody();
-            if (api != null && api.getCode() == 200 && api.getResult() != null && !api.getResult().isBlank()) {
-                return api.getResult();
-            }
-            log.warn("ownership-change không trả tx: {}", api);
-            return null;
+            // Note: Since this is called in a loop for M2S delivery, we can't wait for txHash immediately.
+            // We'll return "PENDING" and the background listener will update it.
+            vn.edu.kma.product_service.event.BlockchainOwnershipChangeEvent event = 
+                vn.edu.kma.product_service.event.BlockchainOwnershipChangeEvent.builder()
+                    .entityId("TRADE_" + System.currentTimeMillis()) // Using a placeholder or we can pass trade_order_id if we want
+                    .entityType("TRADE_ORDER")
+                    .batchIdHex(batchIdHex.trim())
+                    .fromUserId(fromUserId)
+                    .toUserId(toUserId)
+                    .build();
+            kafkaTemplate.send("blockchain.requests.ownership", event);
+            return "PENDING";
         } catch (Exception e) {
             log.warn("Lỗi gọi ownership-change: {}", e.getMessage());
             return null;

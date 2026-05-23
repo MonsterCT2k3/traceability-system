@@ -9,10 +9,10 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import vn.edu.kma.product_service.service.BlockchainClient;
+import vn.edu.kma.product_service.service.IdentityClient;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.ProductUnitGenerateRequest;
 import vn.edu.kma.product_service.dto.request.VerifyHashesRequest;
@@ -40,10 +40,8 @@ public class ProductUnitServiceImpl implements ProductUnitService {
     private final BanknoteSerialRepository banknoteSerialRepository;
     private final RawBatchRepository rawBatchRepository;
     private final TransferRecordRepository transferRecordRepository;
-    private final RestTemplate restTemplate;
-
-    @Value("${app.services.identity.url:http://localhost:8081}")
-    private String identityServiceUrl;
+    private final BlockchainClient blockchainClient;
+    private final IdentityClient identityClient;
 
     @Value("${spring.url.blockchain-service}")
     private String blockchainBaseUrl;
@@ -416,22 +414,13 @@ public class ProductUnitServiceImpl implements ProductUnitService {
 
             VerifyHashesRequest request = VerifyHashesRequest.builder().items(items).build();
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<VerifyHashesRequest> entity = new HttpEntity<>(request, headers);
-
             // 3.3. Gửi danh sách Hash vừa tính được sang Blockchain Service
             // API này sẽ lấy Hash gửi lên đi so sánh với Hash gốc lưu trên Smart Contract
-            ResponseEntity<ApiResponse<VerifyHashesResponse>> resp = restTemplate.exchange(
-                    blockchainBaseUrl + "/verify-hashes",
-                    HttpMethod.POST,
-                    entity,
-                    new ParameterizedTypeReference<ApiResponse<VerifyHashesResponse>>() {}
-            );
+            ApiResponse<VerifyHashesResponse> apiResp = blockchainClient.verifyHashes(request);
 
             // 3.4. Cập nhật kết quả xác thực cho từng sự kiện hiển thị trên App
-            if (resp.getBody() != null && resp.getBody().getResult() != null) {
-                VerifyHashesResponse result = resp.getBody().getResult();
+            if (apiResp != null && apiResp.getResult() != null) {
+                VerifyHashesResponse result = apiResp.getResult();
                 
                 // Chuyển kết quả trả về thành dạng Map<BatchId, true/false> cho dễ tìm kiếm
                 Map<String, Boolean> matchMap = result.getResults().stream()
@@ -465,11 +454,9 @@ public class ProductUnitServiceImpl implements ProductUnitService {
         if (actorId == null || actorId.isBlank())
             return new ActorDetails(null, null, null);
         try {
-            String url = identityServiceUrl + "/api/v1/users/directory/by-id/" + actorId;
-            vn.edu.kma.common.dto.response.ApiResponse<?> response = restTemplate.getForObject(url,
-                    vn.edu.kma.common.dto.response.ApiResponse.class);
+            vn.edu.kma.common.dto.response.ApiResponse<java.util.Map<String, Object>> response = identityClient.getUserById(actorId);
             if (response != null && response.getResult() != null) {
-                java.util.Map<?, ?> result = (java.util.Map<?, ?>) response.getResult();
+                java.util.Map<String, Object> result = response.getResult();
                 Object fullNameObj = result.get("fullName");
                 Object avatarUrlObj = result.get("avatarUrl");
                 Object locationObj = result.get("location");

@@ -8,7 +8,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.client.RestTemplate;
+import vn.edu.kma.product_service.service.BlockchainClient;
 import org.web3j.crypto.Hash;
 import org.web3j.utils.Numeric;
 import vn.edu.kma.common.dto.response.ApiResponse;
@@ -19,6 +19,7 @@ import vn.edu.kma.product_service.entity.RawBatch;
 import vn.edu.kma.product_service.repository.RawBatchRepository;
 import vn.edu.kma.product_service.service.MaterialCatalogService;
 import vn.edu.kma.product_service.service.RawBatchService;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -38,22 +39,22 @@ public class RawBatchServiceImpl implements RawBatchService {
 
     private static final String SCHEMA_VERSION = "1";
 
-    @Value("${spring.url.blockchain-service}")
-    private String blockchainBaseUrl;
-
-    private final RestTemplate restTemplate;
+    private final BlockchainClient blockchainClient;
     private final RawBatchRepository rawBatchRepository;
     private final TransactionTemplate transactionTemplate;
     private final MaterialCatalogService materialCatalogService;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public RawBatchServiceImpl(RestTemplate restTemplate,
+    public RawBatchServiceImpl(BlockchainClient blockchainClient,
                                RawBatchRepository rawBatchRepository,
                                PlatformTransactionManager transactionManager,
-                               MaterialCatalogService materialCatalogService) {
-        this.restTemplate = restTemplate;
+                               MaterialCatalogService materialCatalogService,
+                               KafkaTemplate<String, Object> kafkaTemplate) {
+        this.blockchainClient = blockchainClient;
         this.rawBatchRepository = rawBatchRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.materialCatalogService = materialCatalogService;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Override
@@ -79,27 +80,6 @@ public class RawBatchServiceImpl implements RawBatchService {
 
             String dataHashHex = keccak256HexUtf8(payload);
 
-            Map<String, String> bcBody = new HashMap<>();
-            bcBody.put("batchIdHex", batchIdHex);
-            bcBody.put("dataHashHex", dataHashHex);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, String>> entity = new HttpEntity<>(bcBody, headers);
-
-            ResponseEntity<ApiResponse<String>> resp = restTemplate.exchange(
-                    blockchainBaseUrl + "/batch",
-                    HttpMethod.POST,
-                    entity,
-                    new ParameterizedTypeReference<ApiResponse<String>>() {}
-            );
-
-            ApiResponse<String> api = resp.getBody();
-            if (api == null || api.getCode() != 200 || api.getResult() == null) {
-                throw new RuntimeException("Anchor RAW failed: " + (api != null ? api.getMessage() : "empty"));
-            }
-            String txHash = api.getResult();
-
             RawBatch saved = rawBatchRepository.save(RawBatch.builder()
                     .rawBatchCode(rawBatchCode)
                     .materialType(normalizeString(request.getMaterialType()))
@@ -112,19 +92,29 @@ public class RawBatchServiceImpl implements RawBatchService {
                     .schemaVersion(SCHEMA_VERSION)
                     .batchIdHex(batchIdHex)
                     .dataHashHex(dataHashHex)
-                    .anchorTxHash(txHash)
+                    .anchorTxHash(null) // PENDING
                     .actorId(producerId)
                     .ownerId(producerId)
                     .status("NOT_SHIPPED")
                     .createdAt(LocalDateTime.now())
                     .build());
 
+            // Gửi Event sang Kafka thay vì gọi Feign đồng bộ
+            vn.edu.kma.product_service.event.BlockchainRecordBatchEvent event = 
+                vn.edu.kma.product_service.event.BlockchainRecordBatchEvent.builder()
+                    .entityId(saved.getId())
+                    .entityType("RAW_BATCH")
+                    .batchIdHex(batchIdHex)
+                    .dataHashHex(dataHashHex)
+                    .build();
+            kafkaTemplate.send("blockchain.requests.batch", event);
+
             Map<String, String> result = new HashMap<>();
             result.put("rawBatchId", saved.getId());
             result.put("rawBatchCode", saved.getRawBatchCode());
             result.put("batchIdHex", saved.getBatchIdHex());
             result.put("dataHashHex", saved.getDataHashHex());
-            result.put("anchorTxHash", saved.getAnchorTxHash());
+            result.put("anchorTxHash", "PENDING");
             return result;
         } catch (Exception e) {
             log.error("createRawBatch failed", e);
@@ -238,38 +228,20 @@ public class RawBatchServiceImpl implements RawBatchService {
             }
 
             try {
-                Map<String, String> bcBody = new HashMap<>();
-                bcBody.put("batchIdHex", batchIdHex);
-                bcBody.put("dataHashHex", dataHashHex);
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                HttpEntity<Map<String, String>> entity = new HttpEntity<>(bcBody, headers);
-
-                ResponseEntity<ApiResponse<String>> resp = restTemplate.exchange(
-                        blockchainBaseUrl + "/batch",
-                        HttpMethod.POST,
-                        entity,
-                        new ParameterizedTypeReference<ApiResponse<String>>() {}
-                );
-
-                ApiResponse<String> api = resp.getBody();
-                if (api == null || api.getCode() != 200 || api.getResult() == null) {
-                    throw new RuntimeException(api != null ? api.getMessage() : "empty response");
-                }
-                String txHash = api.getResult();
-
                 final String mergedId = saved.getId();
-                transactionTemplate.execute(status -> {
-                    RawBatch r = rawBatchRepository.findById(mergedId).orElseThrow();
-                    r.setAnchorTxHash(txHash);
-                    rawBatchRepository.save(r);
-                    return null;
-                });
 
-                saved.setAnchorTxHash(txHash);
+                vn.edu.kma.product_service.event.BlockchainRecordBatchEvent event = 
+                    vn.edu.kma.product_service.event.BlockchainRecordBatchEvent.builder()
+                        .entityId(mergedId)
+                        .entityType("RAW_BATCH")
+                        .batchIdHex(batchIdHex)
+                        .dataHashHex(dataHashHex)
+                        .build();
+                kafkaTemplate.send("blockchain.requests.batch", event);
+
+                saved.setAnchorTxHash("PENDING");
             } catch (Exception chainEx) {
-                log.error("mergeRawBatches: blockchain failed, rolling back DB", chainEx);
+                log.error("mergeRawBatches: blockchain send event failed, rolling back DB", chainEx);
                 try {
                     transactionTemplate.execute(status -> {
                         rawBatchRepository.deleteById(saved.getId());

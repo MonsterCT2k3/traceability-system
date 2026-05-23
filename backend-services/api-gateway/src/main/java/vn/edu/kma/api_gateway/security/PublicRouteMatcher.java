@@ -37,6 +37,10 @@ public final class PublicRouteMatcher {
             return true;
         }
 
+        if (path.contains("/ws/") || path.endsWith("/ws")) {
+            return true;
+        }
+
         if (isPublicGet(method, path)) {
             return true;
         }

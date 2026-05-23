@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { message } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WebSocketProvider } from './components/providers/WebSocketProvider';
 import AuthPage from './pages/common/AuthPage';
 // Import các trang sẽ tạo ở bước sau
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -63,9 +64,10 @@ const PrivateRoute = ({ element, allowedRoles }) => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          {/* Đường dẫn mặc định (/) tạm thời chuyển thẳng đến Login */}
+      <WebSocketProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Đường dẫn mặc định (/) tạm thời chuyển thẳng đến Login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
           <Route path="/login" element={<AuthPage />} />
@@ -92,8 +94,9 @@ function App() {
             path="/user"
             element={<PrivateRoute element={<UserDashboard />} allowedRoles={['USER']} />}
           />
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </WebSocketProvider>
     </QueryClientProvider>
   );
 }

@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import vn.edu.kma.product_service.service.BlockchainClient;
 import org.web3j.crypto.Hash;
 import org.web3j.utils.Numeric;
 import vn.edu.kma.common.dto.response.ApiResponse;
@@ -31,12 +31,10 @@ public class PalletServiceImpl implements PalletService {
 
     private static final String SCHEMA_VERSION = "1";
 
-    @Value("${spring.url.blockchain-service}")
-    private String blockchainBaseUrl;
-
-    private final RestTemplate restTemplate;
+    private final BlockchainClient blockchainClient;
     private final ProductRepository productRepository;
     private final PalletRepository palletRepository;
+    private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
     public Map<String, String> anchorPallet(String productId, PalletAnchorRequest request, String tokenHeader) {
@@ -77,27 +75,6 @@ public class PalletServiceImpl implements PalletService {
                     SCHEMA_VERSION;
             String dataHashHex = keccak256HexUtf8(payload);
 
-            Map<String, Object> bcBody = new HashMap<>();
-            bcBody.put("batchIdHex", chainBatchIdHex);
-            bcBody.put("dataHashHex", dataHashHex);
-            bcBody.put("parentHashesHex", parents);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(bcBody, headers);
-            ResponseEntity<ApiResponse<String>> resp = restTemplate.exchange(
-                    blockchainBaseUrl + "/transformed-batch",
-                    HttpMethod.POST,
-                    entity,
-                    new ParameterizedTypeReference<ApiResponse<String>>() {}
-            );
-
-            ApiResponse<String> api = resp.getBody();
-            if (api == null || api.getCode() != 200 || api.getResult() == null) {
-                throw new RuntimeException("Anchor pallet failed: " + (api != null ? api.getMessage() : "empty"));
-            }
-            String txHash = api.getResult();
-
             Pallet saved = palletRepository.save(Pallet.builder()
                     .palletCode(palletCode)
                     .palletName(normalizeString(request.getPalletName()))
@@ -116,18 +93,28 @@ public class PalletServiceImpl implements PalletService {
                     .manufacturerId(processorId)
                     .chainBatchIdHex(chainBatchIdHex)
                     .dataHashHex(dataHashHex)
-                    .anchorTxHash(txHash)
+                    .anchorTxHash(null) // PENDING
                     .productId(productId)
                     .parentRawBatchIdHexes(String.join(",", parents))
                     .createdAt(LocalDateTime.now())
                     .build());
+
+            vn.edu.kma.product_service.event.BlockchainRecordTransformedBatchEvent event = 
+                vn.edu.kma.product_service.event.BlockchainRecordTransformedBatchEvent.builder()
+                    .entityId(saved.getId())
+                    .entityType("PALLET")
+                    .batchIdHex(chainBatchIdHex)
+                    .dataHashHex(dataHashHex)
+                    .parentHashesHex(parents)
+                    .build();
+            kafkaTemplate.send("blockchain.requests.transformed", event);
 
             Map<String, String> result = new HashMap<>();
             result.put("palletId", saved.getId());
             result.put("palletCode", saved.getPalletCode());
             result.put("chainBatchIdHex", saved.getChainBatchIdHex());
             result.put("dataHashHex", saved.getDataHashHex());
-            result.put("anchorTxHash", saved.getAnchorTxHash());
+            result.put("anchorTxHash", "PENDING");
             return result;
         } catch (Exception e) {
             log.error("anchorPallet failed", e);

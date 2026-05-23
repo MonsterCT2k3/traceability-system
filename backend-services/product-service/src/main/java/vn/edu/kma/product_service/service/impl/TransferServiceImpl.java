@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import vn.edu.kma.product_service.service.BlockchainClient;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.product_service.dto.request.TransferInitRequest;
 import vn.edu.kma.product_service.entity.Carton;
@@ -36,10 +36,7 @@ public class TransferServiceImpl implements TransferService {
     private final RawBatchRepository rawBatchRepository;
     private final CartonRepository cartonRepository;
     private final ProductUnitRepository productUnitRepository;
-    private final RestTemplate restTemplate;
-
-    @Value("${spring.url.blockchain-service}")
-    private String blockchainBaseUrl;
+    private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
     public TransferRecord initiateTransfer(TransferInitRequest request, String token) {
@@ -178,35 +175,22 @@ public class TransferServiceImpl implements TransferService {
             return;
         }
         try {
-            Map<String, String> body = new HashMap<>();
-            body.put("batchIdHex", batchIdHex.trim());
-            body.put("fromUserId", transfer.getFromUserId());
-            body.put("toUserId", transfer.getToUserId());
+            vn.edu.kma.product_service.event.BlockchainOwnershipChangeEvent event = 
+                vn.edu.kma.product_service.event.BlockchainOwnershipChangeEvent.builder()
+                    .entityId(transfer.getId())
+                    .entityType("TRANSFER")
+                    .batchIdHex(batchIdHex.trim())
+                    .fromUserId(transfer.getFromUserId())
+                    .toUserId(transfer.getToUserId())
+                    .build();
+            kafkaTemplate.send("blockchain.requests.ownership", event);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
-
-            ResponseEntity<ApiResponse<String>> resp = restTemplate.exchange(
-                    blockchainBaseUrl + "/ownership-change",
-                    HttpMethod.POST,
-                    entity,
-                    new ParameterizedTypeReference<ApiResponse<String>>() {}
-            );
-            ApiResponse<String> api = resp.getBody();
-            if (api != null && api.getCode() == 200 && api.getResult() != null && !api.getResult().isBlank()) {
-                transfer.setBlockchainTxHash(api.getResult());
-                transfer.setBlockchainStatus("OK");
-                transfer.setBlockchainError(null);
-            } else {
-                transfer.setBlockchainStatus("FAILED");
-                transfer.setBlockchainError(api != null ? api.getMessage() : "Phản hồi blockchain rỗng");
-                log.warn("ownership-change không trả txHash: {}", api);
-            }
+            transfer.setBlockchainStatus("PENDING");
+            transfer.setBlockchainError(null);
         } catch (Exception e) {
             transfer.setBlockchainStatus("FAILED");
-            transfer.setBlockchainError(e.getMessage());
-            log.warn("Lỗi gọi ownership-change: {}", e.getMessage());
+            transfer.setBlockchainError("Lỗi gửi Kafka event: " + e.getMessage());
+            log.warn("Lỗi gửi ownership-change event: {}", e.getMessage());
         }
     }
 
