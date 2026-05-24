@@ -41,6 +41,10 @@ public final class PublicRouteMatcher {
             return true;
         }
 
+        if ("/fallback".equals(path)) {
+            return true;
+        }
+
         if (isPublicGet(method, path)) {
             return true;
         }
