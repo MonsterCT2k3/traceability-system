@@ -11,7 +11,7 @@ const { Title, Paragraph } = Typography;
 const ORDERS_QUERY_KEY = ['manufactureOrdersBuyer'];
 
 const fetchBuyerOrders = async () => {
-  const res = await api.get('/product/api/v1/orders/mine/buyer');
+  const res = await api.get('/trade/api/v1/orders/mine/buyer');
   return res.data?.result ?? [];
 };
 
@@ -31,7 +31,7 @@ const ManufactureOrderManagement = () => {
 
   const createMutation = useMutation({
     mutationFn: async (body) => {
-      const res = await api.post('/product/api/v1/orders', body);
+      const res = await api.post('/trade/api/v1/orders', body);
       return res.data?.result;
     },
     onSuccess: () => {
@@ -48,7 +48,7 @@ const ManufactureOrderManagement = () => {
   const cancelMutation = useMutation({
     mutationFn: async (orderId) => {
       setCancellingId(orderId);
-      const res = await api.post(`/product/api/v1/orders/${orderId}/cancel`);
+      const res = await api.post(`/trade/api/v1/orders/${orderId}/cancel`);
       return res.data?.result;
     },
     onSuccess: () => {
@@ -68,7 +68,7 @@ const ManufactureOrderManagement = () => {
     setDetailLoading(true);
     setSelectedOrder(null);
     try {
-      const res = await api.get(`/product/api/v1/orders/${order.id}`);
+      const res = await api.get(`/trade/api/v1/orders/${order.id}`);
       setSelectedOrder(res.data?.result ?? order);
     } catch (err) {
       message.error(err.response?.data?.message || 'Không tải chi tiết đơn');

@@ -51,7 +51,7 @@ spring:
                 - StripPrefix=1
 
             # Route m?i cho Product Service
-            - id: product-service
+            - id: traceability-core-service
               uri: http://localhost:8082
               predicates:
                 - Path=/product/**
@@ -63,7 +63,14 @@ spring:
               predicates:
                 - Path=/catalog/**
               filters:
-                - StripPrefix=1
+                - RewritePath=/catalog/(?<segment>.*), /${segment}
+
+            - id: trade-logistics-service
+              uri: http://localhost:8085
+              predicates:
+                - Path=/trade/**
+              filters:
+                - RewritePath=/trade/(?<segment>.*), /${segment}
 
             - id: blockchain-service
               uri: http://localhost:8083

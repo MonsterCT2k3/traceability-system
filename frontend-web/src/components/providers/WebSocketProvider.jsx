@@ -71,8 +71,46 @@ export const WebSocketProvider = ({ children }) => {
     stompClient.activate();
     setClient(stompClient);
 
+    // ==========================================
+    // 2. STOMP Client for Trade Logistics Service
+    // ==========================================
+    const tradeSocket = new SockJS('http://localhost:8080/trade/ws');
+    const tradeStompClient = new Client({
+      webSocketFactory: () => tradeSocket,
+      reconnectDelay: 5000,
+      debug: (str) => {
+        // console.log(str);
+      },
+      onConnect: () => {
+        console.log('Connected to Trade WebSocket!');
+        tradeStompClient.subscribe(`/topic/user/${userId}/orders`, (message) => {
+          if (message.body) {
+            const data = JSON.parse(message.body);
+            console.log('Received Trade WebSocket message:', data);
+
+            notification.info({
+              message: 'Cập nhật đơn hàng',
+              description: `Đơn hàng ${data.orderId} vừa thay đổi trạng thái.`,
+              duration: 3,
+            });
+
+            // Refetch orders
+            queryClient.invalidateQueries({ queryKey: ['manufactureRetailIncomingOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['supplierIncomingOrders'] });
+            // Add other query keys if needed
+          }
+        });
+      },
+      onStompError: (frame) => {
+        console.error('Trade Broker reported error: ' + frame.headers['message']);
+      },
+    });
+
+    tradeStompClient.activate();
+
     return () => {
       stompClient.deactivate();
+      tradeStompClient.deactivate();
     };
   }, [queryClient]);
 

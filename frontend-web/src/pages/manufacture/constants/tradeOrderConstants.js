@@ -7,6 +7,8 @@ export const ORDER_TYPE = {
 /** Trạng thái đơn — khớp backend TradeOrderStatus */
 export const ORDER_STATUS = {
   PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  ERROR: 'ERROR',
   ACCEPTED: 'ACCEPTED',
   REJECTED: 'REJECTED',
   CANCELLED: 'CANCELLED',
@@ -17,6 +19,8 @@ export const ORDER_STATUS = {
 
 export const ORDER_STATUS_META = {
   PENDING: { label: 'Chờ xử lý', color: 'warning' },
+  PROCESSING: { label: 'Đang xử lý', color: 'orange' },
+  ERROR: { label: 'Lỗi', color: 'red' },
   ACCEPTED: { label: 'Đã chấp nhận', color: 'processing' },
   REJECTED: { label: 'Bị từ chối', color: 'error' },
   CANCELLED: { label: 'Đã hủy', color: 'default' },

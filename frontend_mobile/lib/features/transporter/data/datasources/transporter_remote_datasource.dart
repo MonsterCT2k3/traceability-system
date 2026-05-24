@@ -18,7 +18,7 @@ class TransporterRemoteDataSourceImpl implements TransporterRemoteDataSource {
 
   @override
   Future<List<TradeOrderDto>> getTransporterOrders() async {
-    final response = await apiClient.get('/product/api/v1/orders/mine/carrier');
+    final response = await apiClient.get('/trade/api/v1/orders/mine/carrier');
     final raw = response.data;
     if (raw is Map && raw['result'] is List) {
       return (raw['result'] as List)
@@ -30,7 +30,7 @@ class TransporterRemoteDataSourceImpl implements TransporterRemoteDataSource {
 
   @override
   Future<TradeOrderDto> getOrderDetails(String orderId) async {
-    final response = await apiClient.get('/product/api/v1/orders/$orderId');
+    final response = await apiClient.get('/trade/api/v1/orders/$orderId');
     final raw = response.data;
     if (raw is Map && raw['result'] != null) {
       return TradeOrderDto.fromJson(Map<String, dynamic>.from(raw['result'] as Map));
@@ -40,12 +40,12 @@ class TransporterRemoteDataSourceImpl implements TransporterRemoteDataSource {
 
   @override
   Future<void> confirmPickedUp(String orderId) async {
-    await apiClient.post('/product/api/v1/orders/$orderId/confirm-picked-up');
+    await apiClient.post('/trade/api/v1/orders/$orderId/confirm-picked-up');
   }
 
   @override
   Future<void> confirmDelivered(String orderId) async {
-    await apiClient.post('/product/api/v1/orders/$orderId/confirm-delivered');
+    await apiClient.post('/trade/api/v1/orders/$orderId/confirm-delivered');
   }
 
   @override

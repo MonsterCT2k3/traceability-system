@@ -107,7 +107,7 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
   Future<void> _fetchMyOrders() async {
     setState(() => _loadingOrders = true);
     try {
-      final res = await _api.get('/product/api/v1/orders/mine/buyer');
+      final res = await _api.get('/trade/api/v1/orders/mine/buyer');
       final raw = res.data;
       final list = <_TradeOrderLite>[];
       if (raw is Map && raw['result'] is List) {
@@ -185,7 +185,7 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
           }
         ],
       };
-      await _api.post('/product/api/v1/orders', data: payload);
+      await _api.post('/trade/api/v1/orders', data: payload);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đặt hàng thành công')),

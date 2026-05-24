@@ -6,7 +6,7 @@ class ApiClient {
   final FlutterSecureStorage secureStorage;
 
   ApiClient({required this.dio, required this.secureStorage}) {
-    dio.options.baseUrl = 'https://bb8d-2401-d800-df80-137f-c43e-3442-ba45-a4c.ngrok-free.app';
+    dio.options.baseUrl = 'https://b021-2405-4802-499-d890-fc39-3d39-2fa1-4766.ngrok-free.app';
     dio.options.connectTimeout = const Duration(seconds: 10);
     dio.options.receiveTimeout = const Duration(seconds: 10);
 

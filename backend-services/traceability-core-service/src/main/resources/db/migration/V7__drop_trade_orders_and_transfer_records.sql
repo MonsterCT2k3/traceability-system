@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS transfer_records CASCADE;
+DROP TABLE IF EXISTS trade_orders CASCADE;

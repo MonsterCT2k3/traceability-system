@@ -13,7 +13,7 @@ const { Title, Paragraph, Text } = Typography;
 const QUERY_KEY = ['manufactureRetailIncomingOrders'];
 
 const fetchIncomingRetailOrders = async () => {
-  const res = await api.get('/product/api/v1/orders/mine/seller');
+  const res = await api.get('/trade/api/v1/orders/mine/seller');
   const all = res.data?.result ?? [];
   return all.filter((o) => o.orderType === ORDER_TYPE.RETAILER_TO_MANUFACTURER);
 };
@@ -52,7 +52,7 @@ const ManufactureRetailOrdersManagement = () => {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: QUERY_KEY });
 
   const acceptMutation = useMutation({
-    mutationFn: (orderId) => api.post(`/product/api/v1/orders/${orderId}/accept`),
+    mutationFn: (orderId) => api.post(`/trade/api/v1/orders/${orderId}/accept`),
     onMutate: (id) => setActingId(id),
     onSuccess: () => {
       message.success('Đã chấp nhận đơn');
@@ -63,7 +63,7 @@ const ManufactureRetailOrdersManagement = () => {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (orderId) => api.post(`/product/api/v1/orders/${orderId}/reject`),
+    mutationFn: (orderId) => api.post(`/trade/api/v1/orders/${orderId}/reject`),
     onMutate: (id) => setActingId(id),
     onSuccess: () => {
       message.success('Đã từ chối đơn');
@@ -75,7 +75,7 @@ const ManufactureRetailOrdersManagement = () => {
 
   const assignMutation = useMutation({
     mutationFn: ({ orderId, carrierId }) =>
-      api.post(`/product/api/v1/orders/${orderId}/assign-carrier`, { carrierId }),
+      api.post(`/trade/api/v1/orders/${orderId}/assign-carrier`, { carrierId }),
     onSuccess: () => {
       message.success('Đã gán đơn vị vận chuyển');
       setAssignModalOpen(false);
@@ -90,7 +90,7 @@ const ManufactureRetailOrdersManagement = () => {
     setDetailLoading(true);
     setSelectedOrder(null);
     try {
-      const res = await api.get(`/product/api/v1/orders/${order.id}`);
+      const res = await api.get(`/trade/api/v1/orders/${order.id}`);
       setSelectedOrder(res.data?.result ?? order);
     } catch (e) {
       message.error(e.response?.data?.message || 'Không tải chi tiết');
