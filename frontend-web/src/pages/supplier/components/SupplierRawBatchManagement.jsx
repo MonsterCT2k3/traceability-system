@@ -15,7 +15,7 @@ import {
   Alert,
   Space,
 } from 'antd';
-import { MergeCellsOutlined } from '@ant-design/icons';
+import { MergeCellsOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../lib/api';
 
@@ -30,6 +30,8 @@ const SupplierRawBatchManagement = () => {
   const [mergeMode, setMergeMode] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newItemName, setNewItemName] = useState('');
   const queryClient = useQueryClient();
 
   const { data: rawBatches, isLoading } = useQuery({
@@ -43,7 +45,7 @@ const SupplierRawBatchManagement = () => {
   const { data: materialCatalog, isLoading: catalogLoading } = useQuery({
     queryKey: ['materialCatalog'],
     queryFn: async () => {
-      const response = await api.get('/catalog/api/v1/material-catalog');
+      const response = await api.get('/catalog/api/v1/material-catalog/my');
       return response.data.result;
     },
     staleTime: 30 * 60 * 1000,
@@ -121,6 +123,38 @@ const SupplierRawBatchManagement = () => {
     },
     onError: (error) => {
       message.error(error.response?.data?.message || 'Gộp lô thất bại');
+    },
+  });
+
+  const createCatMutation = useMutation({
+    mutationFn: async (label) => {
+      const res = await api.post('/catalog/api/v1/material-catalog/categories', { label });
+      return res.data.result;
+    },
+    onSuccess: (newCat) => {
+      message.success('Thêm loại nguyên liệu mới thành công');
+      setNewCatName('');
+      form.setFieldsValue({ materialType: newCat.label, materialName: undefined });
+      queryClient.invalidateQueries({ queryKey: ['materialCatalog'] });
+    },
+    onError: (error) => {
+      message.error(error.response?.data?.message || 'Lỗi khi thêm loại nguyên liệu');
+    },
+  });
+
+  const createItemMutation = useMutation({
+    mutationFn: async ({ categoryId, name }) => {
+      const res = await api.post(`/catalog/api/v1/material-catalog/categories/${categoryId}/items`, { name });
+      return res.data.result;
+    },
+    onSuccess: (newItem) => {
+      message.success('Thêm tên nguyên liệu mới thành công');
+      setNewItemName('');
+      form.setFieldsValue({ materialName: newItem.name });
+      queryClient.invalidateQueries({ queryKey: ['materialCatalog'] });
+    },
+    onError: (error) => {
+      message.error(error.response?.data?.message || 'Lỗi khi thêm tên nguyên liệu');
     },
   });
 
@@ -253,6 +287,31 @@ const SupplierRawBatchManagement = () => {
                   loading={catalogLoading}
                   onChange={() => form.setFieldsValue({ materialName: undefined })}
                   options={(materialCatalog || []).map((c) => ({ value: c.label, label: c.label }))}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      <Divider style={{ margin: '8px 0' }} />
+                      <Space style={{ padding: '0 8px 4px' }}>
+                        <Input
+                          placeholder="Nhập loại mới..."
+                          value={newCatName}
+                          onChange={(e) => setNewCatName(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
+                        <Button
+                          type="text"
+                          icon={<PlusOutlined />}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (newCatName.trim()) createCatMutation.mutate(newCatName);
+                          }}
+                          loading={createCatMutation.isPending}
+                        >
+                          Thêm
+                        </Button>
+                      </Space>
+                    </>
+                  )}
                 />
               </Form.Item>
 
@@ -267,6 +326,38 @@ const SupplierRawBatchManagement = () => {
                   disabled={!watchedMaterialType}
                   loading={catalogLoading}
                   options={materialNameOptions.map((i) => ({ value: i.name, label: i.name }))}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      <Divider style={{ margin: '8px 0' }} />
+                      <Space style={{ padding: '0 8px 4px' }}>
+                        <Input
+                          placeholder="Nhập tên mới..."
+                          value={newItemName}
+                          onChange={(e) => setNewItemName(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
+                        <Button
+                          type="text"
+                          icon={<MergeCellsOutlined />}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (!watchedMaterialType) {
+                              message.warning('Vui lòng chọn loại nguyên liệu trước!');
+                              return;
+                            }
+                            const cat = materialCatalog.find(c => c.label === watchedMaterialType);
+                            if (newItemName.trim() && cat) {
+                              createItemMutation.mutate({ categoryId: cat.id, name: newItemName });
+                            }
+                          }}
+                          loading={createItemMutation.isPending}
+                        >
+                          Thêm
+                        </Button>
+                      </Space>
+                    </>
+                  )}
                 />
               </Form.Item>
             </div>
@@ -472,3 +563,4 @@ const SupplierRawBatchManagement = () => {
 };
 
 export default SupplierRawBatchManagement;
+

@@ -28,4 +28,7 @@ public class MaterialCategory {
 
     @Column(nullable = false)
     private boolean active;
+
+    @Column(length = 64)
+    private String ownerId;
 }
