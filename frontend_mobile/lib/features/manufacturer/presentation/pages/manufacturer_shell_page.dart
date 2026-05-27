@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/trace_bottom_navigation.dart';
 import '../../../main/presentation/pages/tabs/profile_tab.dart';
 import 'banknote_serials_tab.dart';
 
-/// NSX: thu thập danh sách số seri tờ tiền (sẽ gắn với id sản phẩm sau này — hiện lưu local).
 class ManufacturerShellPage extends StatefulWidget {
   const ManufacturerShellPage({super.key});
 
@@ -18,7 +18,7 @@ class _ManufacturerShellPageState extends State<ManufacturerShellPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_index == 0 ? 'Seri tờ tiền' : 'Cá nhân'),
+        title: Text(_index == 0 ? 'Quản Lý Seri Sản Phẩm' : 'Cá Nhân'),
         centerTitle: true,
       ),
       body: IndexedStack(
@@ -28,18 +28,18 @@ class _ManufacturerShellPageState extends State<ManufacturerShellPage> {
           ProfileTab(),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: TraceBottomNavigation(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.currency_exchange_outlined),
-            selectedIcon: Icon(Icons.currency_exchange),
-            label: 'Seri 1000đ',
+        onDestinationSelected: (index) => setState(() => _index = index),
+        items: const [
+          TraceBottomNavigationItem(
+            icon: Icons.qr_code_2_outlined,
+            selectedIcon: Icons.qr_code_2_rounded,
+            label: 'Mã seri',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+          TraceBottomNavigationItem(
+            icon: Icons.person_outline_rounded,
+            selectedIcon: Icons.person_rounded,
             label: 'Cá nhân',
           ),
         ],

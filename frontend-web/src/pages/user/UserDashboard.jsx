@@ -3,6 +3,7 @@ import { Card, Button, Form, Select, Table, Tag, message, Typography, Space, Inp
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import api from '../../lib/api';
+import { clearAuthSession } from '../../lib/authSession';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -71,9 +72,7 @@ const UserDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userRole');
+    clearAuthSession();
     navigate('/login');
   };
 

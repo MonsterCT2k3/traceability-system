@@ -33,15 +33,15 @@ public class JwtTokenService {
                     .build()
                     .parseClaimsJws(rawToken.trim())
                     .getBody();
-            String username = claims.getSubject();
-            if (username == null) {
+            String userId = claims.get("userId", String.class);
+            if (userId == null || userId.isBlank()) {
                 return Optional.empty();
             }
             String roleClaim = claims.get("role", String.class);
             UserRole role = UserRole.fromClaimOrDefault(roleClaim);
             var authority = new SimpleGrantedAuthority(role.springAuthority());
             return Optional.of(new UsernamePasswordAuthenticationToken(
-                    username,
+                    userId,
                     null,
                     Collections.singletonList(authority)
             ));

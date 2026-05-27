@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Tag, message, Typography, Space, Popconfirm } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import { clearAuthSession } from '../../lib/authSession';
 
 const { Title } = Typography;
 
@@ -47,9 +48,7 @@ const AdminDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userRole');
+    clearAuthSession();
     navigate('/login');
   };
 

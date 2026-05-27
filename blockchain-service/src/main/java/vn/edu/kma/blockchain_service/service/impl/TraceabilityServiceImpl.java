@@ -1,5 +1,6 @@
 package vn.edu.kma.blockchain_service.service.impl;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,7 +10,6 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.RawTransactionManager;
 import org.web3j.tx.TransactionManager;
-import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.tx.gas.StaticGasProvider;
 import vn.edu.kma.blockchain_service.contract.Traceability;
 import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
@@ -22,15 +22,17 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class TraceabilityServiceImpl implements TraceabilityService {
 
+    private static final Pattern BYTES32_HEX_PATTERN = Pattern.compile("^(?:0[xX])?[0-9a-fA-F]{64}$");
+
     private final Web3j web3j;
+    private final Object transactionLock = new Object();
 
     @Value("${blockchain.wallet.private-key}")
     private String privateKey;
@@ -38,171 +40,142 @@ public class TraceabilityServiceImpl implements TraceabilityService {
     @Value("${blockchain.contract.address}")
     private String contractAddress;
 
+    @Value("${blockchain.gas.price}")
+    private BigInteger gasPrice;
+
+    @Value("${blockchain.gas.limit.deploy}")
+    private BigInteger deployGasLimit;
+
+    @Value("${blockchain.gas.limit.record-batch}")
+    private BigInteger recordBatchGasLimit;
+
+    @Value("${blockchain.gas.limit.record-transformed-batch}")
+    private BigInteger recordTransformedBatchGasLimit;
+
+    @Value("${blockchain.gas.limit.ownership-change}")
+    private BigInteger ownershipChangeGasLimit;
+
+    private Credentials credentials;
+    private TransactionManager transactionManager;
+    private StaticGasProvider deployGasProvider;
+    private Traceability recordBatchContract;
+    private Traceability recordTransformedBatchContract;
+    private Traceability ownershipChangeContract;
+    private Traceability readContract;
+
+    @PostConstruct
+    void initializeContractClients() {
+        credentials = Credentials.create(privateKey);
+        transactionManager = new RawTransactionManager(web3j, credentials);
+        deployGasProvider = gasProvider(deployGasLimit);
+        recordBatchContract = Traceability.load(contractAddress, web3j, transactionManager, gasProvider(recordBatchGasLimit));
+        recordTransformedBatchContract = Traceability.load(
+                contractAddress, web3j, transactionManager, gasProvider(recordTransformedBatchGasLimit));
+        ownershipChangeContract = Traceability.load(
+                contractAddress, web3j, transactionManager, gasProvider(ownershipChangeGasLimit));
+        readContract = Traceability.load(contractAddress, web3j, credentials, deployGasProvider);
+        log.info("Initialized blockchain client for contract={}, wallet={}, gasPrice={}, gasLimits=[deploy={}, recordBatch={}, recordTransformedBatch={}, ownershipChange={}]",
+                contractAddress, credentials.getAddress(), gasPrice, deployGasLimit, recordBatchGasLimit,
+                recordTransformedBatchGasLimit, ownershipChangeGasLimit);
+    }
+
     @Override
     public String deployContract() throws Exception {
-        log.info("Đang deploy contract lên Blockchain...");
-        Credentials credentials = Credentials.create(privateKey);
-        String systemWallet = credentials.getAddress();
-        // Deploy contract
-        Traceability contract = Traceability.deploy(
-                web3j,
-                credentials,
-                new DefaultGasProvider(),
-                systemWallet
-        ).send();
-
-        String address = contract.getContractAddress();
-        log.info("Deploy thành công! Contract Address: {}", address);
-        return address;
+        return submitTransaction("deployContract", () -> {
+            Traceability contract = Traceability.deploy(
+                    web3j,
+                    transactionManager,
+                    deployGasProvider,
+                    credentials.getAddress()
+            ).send();
+            log.info("Contract deployed, contractAddress={}", contract.getContractAddress());
+            return contract.getContractAddress();
+        });
     }
 
     @Override
     public String recordBatch(String batchIdHex, String dataHashHex) throws Exception {
         log.info("recordBatch: batchId={}, dataHash={}", batchIdHex, dataHashHex);
+        byte[] batchIdBytes = hexToBytes32(batchIdHex, "batchIdHex");
+        byte[] dataHashBytes = hexToBytes32(dataHashHex, "dataHashHex");
 
-        BigInteger gasPrice = BigInteger.valueOf(20_000_000_000L);
-        BigInteger gasLimit = BigInteger.valueOf(12_000_000L);
-
-        Credentials credentials = Credentials.create(privateKey);
-        TransactionManager txManager = new RawTransactionManager(web3j, credentials);
-        StaticGasProvider gasProvider = new StaticGasProvider(gasPrice, gasLimit);
-
-        Traceability contract = Traceability.load(
-                contractAddress,
-                web3j,
-                txManager,
-                gasProvider
-        );
-
-        byte[] batchIdBytes = hexToBytes32(batchIdHex);
-        byte[] dataHashBytes = hexToBytes32(dataHashHex);
-
-        TransactionReceipt receipt = contract.recordBatch(batchIdBytes, dataHashBytes).send();
-        log.info("recordBatch OK, txHash={}", receipt.getTransactionHash());
-        return receipt.getTransactionHash();
+        return submitTransaction("recordBatch", () -> {
+            TransactionReceipt receipt = recordBatchContract.recordBatch(batchIdBytes, dataHashBytes).send();
+            log.info("recordBatch OK, txHash={}", receipt.getTransactionHash());
+            return receipt.getTransactionHash();
+        });
     }
 
     @Override
     public String recordTransformedBatch(String batchIdHex, String dataHashHex, List<String> parentHashesHex) throws Exception {
         log.info("recordTransformedBatch: batchId={}, dataHash={}, parents={}", batchIdHex, dataHashHex, parentHashesHex);
-
-        BigInteger gasPrice = BigInteger.valueOf(20_000_000_000L);
-        BigInteger gasLimit = BigInteger.valueOf(12_000_000L);
-
-        Credentials credentials = Credentials.create(privateKey);
-        TransactionManager txManager = new RawTransactionManager(web3j, credentials);
-        StaticGasProvider gasProvider = new StaticGasProvider(gasPrice, gasLimit);
-
-        Traceability contract = Traceability.load(
-                contractAddress,
-                web3j,
-                txManager,
-                gasProvider
-        );
-
-        byte[] batchIdBytes = hexToBytes32(batchIdHex);
-        byte[] dataHashBytes = hexToBytes32(dataHashHex);
+        byte[] batchIdBytes = hexToBytes32(batchIdHex, "batchIdHex");
+        byte[] dataHashBytes = hexToBytes32(dataHashHex, "dataHashHex");
         List<String> parents = parentHashesHex != null ? parentHashesHex : Collections.emptyList();
-        List<byte[]> parentBytes = parents.stream()
-                .map(this::hexToBytes32)
-                .toList();
+        List<byte[]> parentBytes = new ArrayList<>(parents.size());
+        for (int i = 0; i < parents.size(); i++) {
+            parentBytes.add(hexToBytes32(parents.get(i), "parentHashesHex[" + i + "]"));
+        }
 
-        TransactionReceipt receipt = contract.recordTransformedBatch(batchIdBytes, dataHashBytes, parentBytes).send();
-        log.info("recordTransformedBatch OK, txHash={}", receipt.getTransactionHash());
-        return receipt.getTransactionHash();
+        return submitTransaction("recordTransformedBatch", () -> {
+            TransactionReceipt receipt = recordTransformedBatchContract.recordTransformedBatch(batchIdBytes, dataHashBytes, parentBytes).send();
+            log.info("recordTransformedBatch OK, txHash={}", receipt.getTransactionHash());
+            return receipt.getTransactionHash();
+        });
     }
 
     @Override
     public String logOwnershipChange(String batchIdHex, String fromUserId, String toUserId) throws Exception {
         log.info("logOwnershipChange: batchId={}, from={}, to={}", batchIdHex, fromUserId, toUserId);
+        byte[] batchIdBytes = hexToBytes32(batchIdHex, "batchIdHex");
+        requireNonBlank(fromUserId, "fromUserId");
+        requireNonBlank(toUserId, "toUserId");
 
-        BigInteger gasPrice = BigInteger.valueOf(20_000_000_000L);
-        BigInteger gasLimit = BigInteger.valueOf(12_000_000L);
-
-        Credentials credentials = Credentials.create(privateKey);
-        TransactionManager txManager = new RawTransactionManager(web3j, credentials);
-        StaticGasProvider gasProvider = new StaticGasProvider(gasPrice, gasLimit);
-
-        Traceability contract = Traceability.load(
-                contractAddress,
-                web3j,
-                txManager,
-                gasProvider
-        );
-
-        byte[] batchIdBytes = hexToBytes32(batchIdHex);
-        TransactionReceipt receipt = contract.logOwnershipChange(batchIdBytes, fromUserId, toUserId).send();
-        log.info("logOwnershipChange OK, txHash={}", receipt.getTransactionHash());
-        return receipt.getTransactionHash();
+        return submitTransaction("logOwnershipChange", () -> {
+            TransactionReceipt receipt = ownershipChangeContract.logOwnershipChange(batchIdBytes, fromUserId, toUserId).send();
+            log.info("logOwnershipChange OK, txHash={}", receipt.getTransactionHash());
+            return receipt.getTransactionHash();
+        });
     }
 
     @Override
-    public VerifyHashesResponse verifyHashes(VerifyHashesRequest request) throws Exception {
+    public VerifyHashesResponse verifyHashes(VerifyHashesRequest request) {
+        if (request == null || request.getItems() == null) {
+            throw new IllegalArgumentException("items must not be null");
+        }
+
         List<VerifyHashesResponse.VerifyResult> results = new ArrayList<>();
-        
-        // 1. Tải Smart Contract từ Blockchain
-        // Dùng credentials (tài khoản hệ thống) và contractAddress để tạo đối tượng giao tiếp với Blockchain
-        Credentials credentials = Credentials.create(privateKey);
-        Traceability contract = Traceability.load(
-                contractAddress, web3j, credentials, new DefaultGasProvider()
-        );
-
-        // 2. Duyệt qua từng mã Hash mà Product-Service gửi sang để nhờ xác thực
         for (VerifyHashesRequest.HashItem item : request.getItems()) {
-            boolean isMatch = false; // Mặc định là không khớp (dữ liệu bị sai lệch)
+            boolean isMatch = false;
             try {
-                // Chuyển ID Lô hàng từ chuỗi String (Hex) sang mảng byte (Bytes32) cho đúng chuẩn Solidity
-                byte[] batchIdBytes = hexToBytes32(item.getBatchIdHex());
+                byte[] batchIdBytes = hexToBytes32(item.getBatchIdHex(), "batchIdHex");
                 String onChainHash = null;
-
-                // 3. Đọc dữ liệu Gốc từ Blockchain (Chỉ gọi hàm read, không tốn phí Gas)
                 if ("RAW".equalsIgnoreCase(item.getType())) {
-                    // Nếu là Nguyên liệu gốc
-                    var tuple = contract.getBatchRecord(batchIdBytes).send();
-                    onChainHash = bytes32ToHex(tuple.component1()); // Lấy Hash đã lưu lúc khai báo
+                    onChainHash = bytes32ToHex(readContract.getBatchRecord(batchIdBytes).send().component1());
                 } else if ("TRANSFORMED".equalsIgnoreCase(item.getType())) {
-                    // Nếu là Lô hàng chế biến (Pallet)
-                    var tuple = contract.getTransformedBatchRecord(batchIdBytes).send();
-                    onChainHash = bytes32ToHex(tuple.component1()); // Lấy Hash đã lưu lúc sản xuất
+                    onChainHash = bytes32ToHex(readContract.getTransformedBatchRecord(batchIdBytes).send().component1());
                 }
 
-                // 4. Đối chiếu (So sánh)
                 if (onChainHash != null) {
-                    String inputHash = item.getDataHashHex(); // Mã Hash tính bằng dữ liệu hiện tại ở DB
-                    if (inputHash != null) {
-                        // Thêm tiền tố 0x nếu chưa có để đồng nhất format
-                        if (!inputHash.startsWith("0x")) inputHash = "0x" + inputHash;
-                        
-                        // CHỐT HẠ: So sánh Mã Hash lưu trên mạng lưới và Mã Hash gửi lên
-                        // Nếu 2 mã giống hệt nhau -> Dữ liệu ở DB chưa hề bị sửa đổi
-                        isMatch = onChainHash.equalsIgnoreCase(inputHash);
-                    }
+                    byte[] inputHashBytes = hexToBytes32(item.getDataHashHex(), "dataHashHex");
+                    isMatch = onChainHash.equalsIgnoreCase(bytes32ToHex(inputHashBytes));
                 }
             } catch (Exception e) {
                 log.error("Error verifying batch {}: {}", item.getBatchIdHex(), e.getMessage());
             }
 
-            // 5. Ghi nhận kết quả của Lô này vào danh sách
             results.add(VerifyHashesResponse.VerifyResult.builder()
                     .batchIdHex(item.getBatchIdHex())
                     .isMatch(isMatch)
                     .build());
         }
 
-        // 6. Trả toàn bộ danh sách kết quả (true/false) về cho Product-Service
         return VerifyHashesResponse.builder().results(results).build();
     }
 
     @Override
     public BatchRecordResponse getBatchRecord(String batchIdHex) throws Exception {
-        Credentials credentials = Credentials.create(privateKey);
-        Traceability contract = Traceability.load(
-                contractAddress, web3j, credentials, new DefaultGasProvider()
-        );
-
-        byte[] batchIdBytes = hexToBytes32(batchIdHex);
-        var tuple = contract.getBatchRecord(batchIdBytes).send();
-
+        var tuple = readContract.getBatchRecord(hexToBytes32(batchIdHex, "batchIdHex")).send();
         return BatchRecordResponse.builder()
                 .batchIdHex(batchIdHex)
                 .dataHashHex(bytes32ToHex(tuple.component1()))
@@ -213,14 +186,7 @@ public class TraceabilityServiceImpl implements TraceabilityService {
 
     @Override
     public TransformedBatchRecordResponse getTransformedBatchRecord(String batchIdHex) throws Exception {
-        Credentials credentials = Credentials.create(privateKey);
-        Traceability contract = Traceability.load(
-                contractAddress, web3j, credentials, new DefaultGasProvider()
-        );
-
-        byte[] batchIdBytes = hexToBytes32(batchIdHex);
-        var tuple = contract.getTransformedBatchRecord(batchIdBytes).send();
-
+        var tuple = readContract.getTransformedBatchRecord(hexToBytes32(batchIdHex, "batchIdHex")).send();
         return TransformedBatchRecordResponse.builder()
                 .batchIdHex(batchIdHex)
                 .dataHashHex(bytes32ToHex(tuple.component1()))
@@ -232,37 +198,43 @@ public class TraceabilityServiceImpl implements TraceabilityService {
 
     @Override
     public boolean hasBatch(String batchIdHex) throws Exception {
-        Credentials credentials = Credentials.create(privateKey);
-        Traceability contract = Traceability.load(
-                contractAddress, web3j, credentials, new DefaultGasProvider()
-        );
-        return contract.hasBatch(hexToBytes32(batchIdHex)).send();
+        return readContract.hasBatch(hexToBytes32(batchIdHex, "batchIdHex")).send();
     }
 
     @Override
     public boolean hasTransformedBatch(String batchIdHex) throws Exception {
-        Credentials credentials = Credentials.create(privateKey);
-        Traceability contract = Traceability.load(
-                contractAddress, web3j, credentials, new DefaultGasProvider()
-        );
-        return contract.hasTransformedBatch(hexToBytes32(batchIdHex)).send();
+        return readContract.hasTransformedBatch(hexToBytes32(batchIdHex, "batchIdHex")).send();
     }
 
+    private String submitTransaction(String operation, BlockchainTransaction transaction) throws Exception {
+        synchronized (transactionLock) {
+            log.debug("Submitting serialized blockchain transaction: {}", operation);
+            return transaction.send();
+        }
+    }
 
-    private byte[] hexToBytes32(String hex) {
-        // chấp nhận "0x..." hoặc không
-        if (hex.startsWith("0x") || hex.startsWith("0X")) {
-            hex = hex.substring(2);
+    private StaticGasProvider gasProvider(BigInteger gasLimit) {
+        return new StaticGasProvider(gasPrice, gasLimit);
+    }
+
+    private byte[] hexToBytes32(String hex, String fieldName) {
+        if (hex == null || !BYTES32_HEX_PATTERN.matcher(hex).matches()) {
+            throw new IllegalArgumentException(fieldName + " must be a 32-byte hexadecimal value");
         }
-        if (hex.length() != 64) {
-            throw new IllegalArgumentException("Hex length must be 64 for bytes32");
-        }
+
+        String normalized = hex.startsWith("0x") || hex.startsWith("0X") ? hex.substring(2) : hex;
         byte[] bytes = new byte[32];
         for (int i = 0; i < 32; i++) {
             int index = i * 2;
-            bytes[i] = (byte) Integer.parseInt(hex.substring(index, index + 2), 16);
+            bytes[i] = (byte) Integer.parseInt(normalized.substring(index, index + 2), 16);
         }
         return bytes;
+    }
+
+    private void requireNonBlank(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
     }
 
     private String bytes32ToHex(byte[] bytes) {
@@ -271,5 +243,10 @@ public class TraceabilityServiceImpl implements TraceabilityService {
             sb.append(String.format("%02x", b));
         }
         return sb.toString();
+    }
+
+    @FunctionalInterface
+    private interface BlockchainTransaction {
+        String send() throws Exception;
     }
 }

@@ -67,7 +67,8 @@ class _BanknoteLiveOcrPageState extends State<BanknoteLiveOcrPage> {
       _recognizer = TextRecognizer(script: TextRecognitionScript.latin);
       _cam = ctrl;
       setState(() => _ready = true);
-      _ocrTimer = Timer.periodic(const Duration(milliseconds: 1200), (_) => _tickOcrFromPicture());
+      _ocrTimer = Timer.periodic(
+          const Duration(milliseconds: 1200), (_) => _tickOcrFromPicture());
     } catch (e) {
       if (mounted) setState(() => _initError = 'Lỗi camera: $e');
     }
@@ -76,7 +77,11 @@ class _BanknoteLiveOcrPageState extends State<BanknoteLiveOcrPage> {
   Future<void> _tickOcrFromPicture() async {
     final cam = _cam;
     final rec = _recognizer;
-    if (!mounted || !_ready || cam == null || rec == null || !cam.value.isInitialized) return;
+    if (!mounted ||
+        !_ready ||
+        cam == null ||
+        rec == null ||
+        !cam.value.isInitialized) return;
     if (_processing || cam.value.isTakingPicture) return;
 
     _processing = true;
@@ -111,7 +116,8 @@ class _BanknoteLiveOcrPageState extends State<BanknoteLiveOcrPage> {
   }
 
   Future<void> _pickGalleryOnce() async {
-    final x = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 2400, imageQuality: 90);
+    final x = await ImagePicker().pickImage(
+        source: ImageSource.gallery, maxWidth: 2400, imageQuality: 90);
     if (x == null || _recognizer == null) return;
     try {
       final input = InputImage.fromFilePath(x.path);
@@ -131,12 +137,15 @@ class _BanknoteLiveOcrPageState extends State<BanknoteLiveOcrPage> {
       if (changed) setState(() {});
       if (found.isEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không đọc được seri từ ảnh — thử ảnh rõ hơn hoặc nhập tay.')),
+          const SnackBar(
+              content: Text(
+                  'Không đọc được seri từ ảnh — thử ảnh rõ hơn hoặc nhập tay.')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     }
   }
@@ -151,7 +160,9 @@ class _BanknoteLiveOcrPageState extends State<BanknoteLiveOcrPage> {
     }
     if (_chosenBatch.length >= kBanknoteOcrBatchSize) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã đủ $kBanknoteOcrBatchSize seri — bỏ chọn một dòng hoặc lưu tập.')),
+        const SnackBar(
+            content: Text(
+                'Đã đủ $kBanknoteOcrBatchSize seri — bỏ chọn một dòng hoặc lưu tập.')),
       );
       return;
     }
@@ -162,17 +173,22 @@ class _BanknoteLiveOcrPageState extends State<BanknoteLiveOcrPage> {
     final n = normalizeBanknoteSerialStored(_manual.text);
     if (n == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seri không hợp lệ (4–32 ký tự: chữ, số, gạch ngang).')),
+        const SnackBar(
+            content:
+                Text('Seri không hợp lệ (4–32 ký tự: chữ, số, gạch ngang).')),
       );
       return;
     }
     if (_chosenBatch.contains(n)) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã có $n trong tập.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Đã có $n trong tập.')));
       return;
     }
     if (_chosenBatch.length >= kBanknoteOcrBatchSize) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã đủ $kBanknoteOcrBatchSize seri — lưu tập hoặc bỏ chọn một dòng.')),
+        const SnackBar(
+            content: Text(
+                'Đã đủ $kBanknoteOcrBatchSize seri — lưu tập hoặc bỏ chọn một dòng.')),
       );
       return;
     }
@@ -185,6 +201,22 @@ class _BanknoteLiveOcrPageState extends State<BanknoteLiveOcrPage> {
   void _popBatchIfComplete() {
     if (_chosenBatch.length != kBanknoteOcrBatchSize) return;
     Navigator.of(context).pop(List<String>.from(_chosenBatch));
+  }
+
+  Widget _buildCoverCameraPreview(CameraController camera) {
+    final previewSize = camera.value.previewSize;
+    if (previewSize == null) return CameraPreview(camera);
+
+    return ClipRect(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: previewSize.height,
+          height: previewSize.width,
+          child: CameraPreview(camera),
+        ),
+      ),
+    );
   }
 
   @override
@@ -204,172 +236,367 @@ class _BanknoteLiveOcrPageState extends State<BanknoteLiveOcrPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F7F3),
       appBar: AppBar(
-        title: const Text('Camera & nhận diện seri'),
+        backgroundColor: const Color(0xFFF2F7F3),
+        surfaceTintColor: Colors.transparent,
+        title: const Text(
+          'Thu thập seri',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           IconButton(
-            tooltip: 'Một ảnh từ thư viện',
+            tooltip: 'Chọn ảnh từ thư viện',
             onPressed: _pickGalleryOnce,
-            icon: const Icon(Icons.photo_library_outlined),
+            icon: const Icon(Icons.add_photo_alternate_outlined),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: _initError != null
-          ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_initError!)))
+          ? Center(
+              child: Padding(
+                  padding: const EdgeInsets.all(24), child: Text(_initError!)))
           : !_ready || _cam == null
               ? const Center(child: CircularProgressIndicator())
               : Column(
                   children: [
                     Expanded(
-                      flex: 11,
-                      child: ColoredBox(
-                        color: Colors.black,
-                        child: Center(child: CameraPreview(_cam!)),
+                      flex: 10,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x240C3A40),
+                                blurRadius: 18,
+                                offset: Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                _buildCoverCameraPreview(_cam!),
+                                Positioned(
+                                  top: 14,
+                                  left: 14,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 11,
+                                      vertical: 7,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.45),
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    child: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.document_scanner_outlined,
+                                          size: 15,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Đang nhận diện',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 18,
+                                  right: 18,
+                                  bottom: 14,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 9,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.5),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'Giữ số seri rõ nét trong khung hình',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    const Divider(height: 1),
                     Expanded(
-                      flex: 9,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Material(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.35),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                      flex: 12,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(26)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF6F2),
+                                borderRadius: BorderRadius.circular(18),
+                                border:
+                                    Border.all(color: const Color(0xFFC7E9DD)),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.inventory_2_outlined,
+                                          size: 19,
+                                          color: Color(0xFF087B69),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Tập hiện tại',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 9,
+                                            vertical: 5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF087B69),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            '${_chosenBatch.length}/$kBanknoteOcrBatchSize',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    if (_chosenBatch.isEmpty)
+                                      Text(
+                                        'Chạm ứng viên bên dưới để chọn/bỏ chọn (tối đa $kBanknoteOcrBatchSize).',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade700),
+                                      )
+                                    else
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: [
+                                          for (final s in _chosenBatch)
+                                            InputChip(
+                                              label: Text(s,
+                                                  style: const TextStyle(
+                                                      fontFamily: 'monospace',
+                                                      fontSize: 12)),
+                                              onDeleted: () => setState(
+                                                  () => _chosenBatch.remove(s)),
+                                              materialTapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                            ),
+                                        ],
+                                      ),
+                                    const SizedBox(height: 8),
+                                    FilledButton.icon(
+                                      onPressed: _chosenBatch.length ==
+                                              kBanknoteOcrBatchSize
+                                          ? _popBatchIfComplete
+                                          : null,
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFF087B69),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                      ),
+                                      icon: const Icon(Icons.save_outlined),
+                                      label: const Text('Lưu tập seri'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                              child: Row(
                                 children: [
                                   Text(
-                                    'Tập hiện tại: ${_chosenBatch.length}/$kBanknoteOcrBatchSize seri',
-                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    'Ứng viên (${_candidates.length})',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(
                                           fontWeight: FontWeight.w700,
                                         ),
                                   ),
-                                  const SizedBox(height: 6),
-                                  if (_chosenBatch.isEmpty)
-                                    Text(
-                                      'Chạm ứng viên bên dưới để chọn/bỏ chọn (tối đa $kBanknoteOcrBatchSize).',
-                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                                    )
-                                  else
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: 6,
-                                      children: [
-                                        for (final s in _chosenBatch)
-                                          InputChip(
-                                            label: Text(s, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-                                            onDeleted: () => setState(() => _chosenBatch.remove(s)),
-                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                            visualDensity: VisualDensity.compact,
-                                          ),
-                                      ],
+                                  const Spacer(),
+                                  if (_candidates.isNotEmpty)
+                                    TextButton(
+                                      onPressed: () =>
+                                          setState(() => _candidateSet.clear()),
+                                      child: const Text('Xóa ứng viên'),
                                     ),
-                                  const SizedBox(height: 8),
-                                  FilledButton.icon(
-                                    onPressed: _chosenBatch.length == kBanknoteOcrBatchSize ? _popBatchIfComplete : null,
-                                    icon: const Icon(Icons.save_outlined),
-                                    label: const Text('Lưu tập và thoát'),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'Khoảng 1,2 giây chụp một khung để đọc. Chạm dòng để thêm/bỏ trong tập — cần đủ $kBanknoteOcrBatchSize seri rồi bấm Lưu tập.',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey.shade700),
+                              ),
+                            ),
+                            Expanded(
+                              child: _candidates.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        'Chưa nhận diện được seri.\nĐủ sáng, lấy nét; hoặc dùng ảnh thư viện (icon góc).',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            color: Colors.grey.shade600),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          10, 4, 10, 8),
+                                      itemCount: _candidates.length,
+                                      itemBuilder: (_, i) {
+                                        final c = _candidates[i];
+                                        final norm =
+                                            normalizeBanknoteSerialStored(c);
+                                        final inBatch = norm != null &&
+                                            _chosenBatch.contains(norm);
+                                        return Card(
+                                          elevation: 0,
+                                          margin:
+                                              const EdgeInsets.only(bottom: 6),
+                                          color: inBatch
+                                              ? const Color(0xFFEAF6F2)
+                                              : const Color(0xFFF7F9F8),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(13),
+                                            side: BorderSide(
+                                              color: inBatch
+                                                  ? const Color(0xFFC7E9DD)
+                                                  : Colors.transparent,
+                                            ),
+                                          ),
+                                          child: ListTile(
+                                            dense: true,
+                                            leading: Icon(
+                                              inBatch
+                                                  ? Icons.check_circle
+                                                  : Icons
+                                                      .radio_button_unchecked,
+                                              size: 22,
+                                              color: inBatch
+                                                  ? Theme.of(context)
+                                                      .colorScheme
+                                                      .primary
+                                                  : null,
+                                            ),
+                                            title: Text(
+                                              c,
+                                              style: const TextStyle(
+                                                fontFamily: 'monospace',
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                            subtitle: Text(
+                                              inBatch
+                                                  ? 'Đang trong tập — chạm để bỏ'
+                                                  : 'Chạm để thêm vào tập',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey.shade600),
+                                            ),
+                                            onTap: () =>
+                                                _toggleCandidateIntoBatch(c),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _manual,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Nhập seri bổ sung',
+                                        prefixIcon: Icon(Icons.edit_outlined),
+                                        border: OutlineInputBorder(),
+                                        isDense: true,
+                                      ),
+                                      textCapitalization:
+                                          TextCapitalization.characters,
+                                      onSubmitted: (_) => _addManualToBatch(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  FilledButton.tonal(
+                                    onPressed: _addManualToBatch,
+                                    style: FilledButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 16),
+                                    ),
+                                    child: const Text('Thêm'),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                            child: Row(
-                              children: [
-                                Text(
-                                  'Ứng viên (${_candidates.length})',
-                                  style: Theme.of(context).textTheme.titleSmall,
-                                ),
-                                const Spacer(),
-                                if (_candidates.isNotEmpty)
-                                  TextButton(
-                                    onPressed: () => setState(() => _candidateSet.clear()),
-                                    child: const Text('Xóa ứng viên'),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              'Khoảng 1,2 giây chụp một khung để đọc. Chạm dòng để thêm/bỏ trong tập — cần đủ $kBanknoteOcrBatchSize seri rồi bấm Lưu tập.',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                            ),
-                          ),
-                          Expanded(
-                            child: _candidates.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'Chưa nhận diện được seri.\nĐủ sáng, lấy nét; hoặc dùng ảnh thư viện (icon góc).',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: Colors.grey.shade600),
-                                    ),
-                                  )
-                                : ListView.builder(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    itemCount: _candidates.length,
-                                    itemBuilder: (_, i) {
-                                      final c = _candidates[i];
-                                      final norm = normalizeBanknoteSerialStored(c);
-                                      final inBatch = norm != null && _chosenBatch.contains(norm);
-                                      return ListTile(
-                                        dense: true,
-                                        leading: Icon(
-                                          inBatch ? Icons.check_circle : Icons.radio_button_unchecked,
-                                          size: 22,
-                                          color: inBatch ? Theme.of(context).colorScheme.primary : null,
-                                        ),
-                                        title: Text(
-                                          c,
-                                          style: const TextStyle(
-                                            fontFamily: 'monospace',
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                        subtitle: Text(
-                                          inBatch ? 'Đang trong tập — chạm để bỏ' : 'Chạm để thêm vào tập',
-                                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                                        ),
-                                        onTap: () => _toggleCandidateIntoBatch(c),
-                                      );
-                                    },
-                                  ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _manual,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Nhập seri bổ sung',
-                                      border: OutlineInputBorder(),
-                                      isDense: true,
-                                    ),
-                                    textCapitalization: TextCapitalization.characters,
-                                    onSubmitted: (_) => _addManualToBatch(),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                FilledButton.tonal(
-                                  onPressed: _addManualToBatch,
-                                  child: const Text('Thêm vào tập'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],

@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
+import { clearAuthSession } from '../../lib/authSession';
 import ManufactureOrderManagement from './components/orders/ManufactureOrderManagement';
 import ManufactureRetailOrdersManagement from './components/orders/ManufactureRetailOrdersManagement';
 import ProductManagement from './components/products/ProductManagement';
@@ -500,9 +501,7 @@ const ManufactureDashboard = () => {
   const avatarUrl = profile?.avatarUrl;
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userRole');
+    clearAuthSession();
     navigate('/login');
   };
 

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAuthSession } from './authSession';
 
 // Tạo một "bản sao" của axios với URL mặc định lấy từ file .env
 const api = axios.create({
@@ -33,8 +34,7 @@ api.interceptors.response.use(
             // Tạm thời: Nếu lỗi 401 thì xóa token và bắt đăng nhập lại
             // (Sau này mình sẽ làm tính năng tự động refresh token ở đây)
             console.log("Token hết hạn hoặc không hợp lệ");
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
+            clearAuthSession();
             // window.location.href = '/login'; // Bật dòng này sau khi có router
         }
         return Promise.reject(error);

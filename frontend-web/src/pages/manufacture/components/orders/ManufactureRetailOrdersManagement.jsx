@@ -54,8 +54,13 @@ const ManufactureRetailOrdersManagement = () => {
   const acceptMutation = useMutation({
     mutationFn: (orderId) => api.post(`/trade/api/v1/orders/${orderId}/accept`),
     onMutate: (id) => setActingId(id),
-    onSuccess: () => {
-      message.success('Đã chấp nhận đơn');
+    onSuccess: (response) => {
+      const status = response.data?.result?.status;
+      if (status === ORDER_STATUS.PROCESSING) {
+        message.info('Đang giữ hàng cho đơn. Đơn sẽ sẵn sàng gán VC sau khi kiểm tra tồn kho hoàn tất.');
+      } else {
+        message.success('Đã chấp nhận đơn');
+      }
       invalidate();
     },
     onError: (e) => message.error(e.response?.data?.message || 'Không chấp nhận được'),

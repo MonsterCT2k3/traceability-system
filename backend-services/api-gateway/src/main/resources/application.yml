@@ -129,3 +129,13 @@ eureka:
 
 
 
+
+resilience4j.timelimiter:
+  configs:
+    default:
+      timeoutDuration: 10s
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    vn.edu.kma: DEBUG

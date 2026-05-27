@@ -6,6 +6,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import vn.edu.kma.common.event.InventoryReplyEvent;
 import vn.edu.kma.trade_logistics_service.domain.TradeOrderStatus;
 import vn.edu.kma.trade_logistics_service.entity.TradeOrder;
@@ -82,11 +84,21 @@ public class InventoryReplyConsumer {
 
         tradeOrderRepository.save(order);
 
-        // Notify User via WebSocket
-        // For simplicity, we notify the seller. Or both.
-        String destinationSeller = "/topic/user/" + order.getSellerId() + "/orders";
-        String destinationBuyer = "/topic/user/" + order.getBuyerId() + "/orders";
-        messagingTemplate.convertAndSend(destinationSeller, event);
-        messagingTemplate.convertAndSend(destinationBuyer, event);
+        notifyUserAfterCommit(order.getSellerId(), event);
+        notifyUserAfterCommit(order.getBuyerId(), event);
+    }
+
+    private void notifyUserAfterCommit(String userId, InventoryReplyEvent event) {
+        Runnable sendAction = () -> messagingTemplate.convertAndSendToUser(userId, "/queue/orders", event);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sendAction.run();
+                }
+            });
+        } else {
+            sendAction.run();
+        }
     }
 }

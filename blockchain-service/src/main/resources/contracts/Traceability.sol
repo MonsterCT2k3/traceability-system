@@ -2,28 +2,31 @@
 pragma solidity ^0.8.19;
 
 /**
- * Traceability – ghi Batch/Pallet + audit chuyển quyền (userId) qua event.
- * Chỉ systemWallet được ghi (recordBatch, recordTransformedBatch, logOwnershipChange).
+ * Records raw/transformed batch hashes and ownership audit events.
+ * Only the system wallet can write traceability data.
  */
 contract Traceability {
 
+    error NotSystemWallet();
+    error SystemWalletIsZero();
+    error BatchAlreadyRecorded();
+    error TransformedBatchAlreadyRecorded();
+
     struct BatchInfo {
         bytes32 dataHash;
-        address actor;
         uint256 timestamp;
     }
 
     struct TransformedBatchInfo {
         bytes32 dataHash;
         bytes32 parentRoot;
-        address actor;
         uint256 timestamp;
     }
 
-    address public systemWallet;
+    address public immutable systemWallet;
 
-    mapping(bytes32 => BatchInfo) public batches;
-    mapping(bytes32 => TransformedBatchInfo) public transformedBatches;
+    mapping(bytes32 => BatchInfo) private batches;
+    mapping(bytes32 => TransformedBatchInfo) private transformedBatches;
 
     event BatchRecorded(
         bytes32 indexed batchId,
@@ -48,20 +51,19 @@ contract Traceability {
     );
 
     modifier onlySystem() {
-        require(msg.sender == systemWallet, "Not system wallet");
+        if (msg.sender != systemWallet) revert NotSystemWallet();
         _;
     }
 
     constructor(address _systemWallet) {
-        require(_systemWallet != address(0), "System wallet is zero");
+        if (_systemWallet == address(0)) revert SystemWalletIsZero();
         systemWallet = _systemWallet;
     }
 
     function recordBatch(bytes32 _batchId, bytes32 _dataHash) external onlySystem {
-        require(batches[_batchId].timestamp == 0, "Batch already recorded");
+        if (batches[_batchId].timestamp != 0) revert BatchAlreadyRecorded();
         batches[_batchId] = BatchInfo({
             dataHash: _dataHash,
-            actor: msg.sender,
             timestamp: block.timestamp
         });
         emit BatchRecorded(_batchId, _dataHash, msg.sender, block.timestamp);
@@ -72,12 +74,11 @@ contract Traceability {
         bytes32 _dataHash,
         bytes32[] calldata _parentHashes
     ) external onlySystem {
-        require(transformedBatches[_batchId].timestamp == 0, "Transformed batch already recorded");
+        if (transformedBatches[_batchId].timestamp != 0) revert TransformedBatchAlreadyRecorded();
         bytes32 parentRoot = keccak256(abi.encodePacked(_parentHashes));
         transformedBatches[_batchId] = TransformedBatchInfo({
             dataHash: _dataHash,
             parentRoot: parentRoot,
-            actor: msg.sender,
             timestamp: block.timestamp
         });
         emit TransformedBatchRecorded(_batchId, _dataHash, parentRoot, msg.sender, block.timestamp);
@@ -96,7 +97,8 @@ contract Traceability {
         returns (bytes32 dataHash, address actor, uint256 timestamp)
     {
         BatchInfo memory b = batches[_batchId];
-        return (b.dataHash, b.actor, b.timestamp);
+        address actor = b.timestamp == 0 ? address(0) : systemWallet;
+        return (b.dataHash, actor, b.timestamp);
     }
 
     function getTransformedBatchRecord(bytes32 _batchId)
@@ -104,7 +106,8 @@ contract Traceability {
         returns (bytes32 dataHash, bytes32 parentRoot, address actor, uint256 timestamp)
     {
         TransformedBatchInfo memory t = transformedBatches[_batchId];
-        return (t.dataHash, t.parentRoot, t.actor, t.timestamp);
+        address actor = t.timestamp == 0 ? address(0) : systemWallet;
+        return (t.dataHash, t.parentRoot, actor, t.timestamp);
     }
 
     function hasBatch(bytes32 _batchId) external view returns (bool) {

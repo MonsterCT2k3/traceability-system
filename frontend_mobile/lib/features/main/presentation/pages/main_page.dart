@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/widgets/trace_bottom_navigation.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import 'tabs/history_tab.dart';
-import 'tabs/scan_tab.dart';
 import 'tabs/profile_tab.dart';
+import 'tabs/scan_tab.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -25,64 +27,55 @@ class _MainPageState extends State<MainPage> {
         return wasAuth != isAuth;
       },
       listener: (context, state) {
-        setState(() {
-          _currentIndex = 0;
-        });
+        setState(() => _currentIndex = 0);
       },
       builder: (context, authState) {
         final isAuthenticated = authState is AuthAuthenticated;
-
         final tabs = isAuthenticated
             ? const [ScanTab(), HistoryTab(), ProfileTab()]
             : const [ScanTab(), ProfileTab()];
-
         final destinations = isAuthenticated
             ? const [
-                NavigationDestination(
-                  icon: Icon(Icons.qr_code_scanner),
-                  selectedIcon: Icon(Icons.qr_code_scanner, color: Colors.green),
+                TraceBottomNavigationItem(
+                  icon: Icons.qr_code_scanner_outlined,
+                  selectedIcon: Icons.qr_code_scanner_rounded,
                   label: 'Quét QR',
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.history_outlined),
-                  selectedIcon: Icon(Icons.history),
+                TraceBottomNavigationItem(
+                  icon: Icons.history_outlined,
+                  selectedIcon: Icons.history_rounded,
                   label: 'Lịch sử',
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
+                TraceBottomNavigationItem(
+                  icon: Icons.person_outline_rounded,
+                  selectedIcon: Icons.person_rounded,
                   label: 'Cá nhân',
                 ),
               ]
             : const [
-                NavigationDestination(
-                  icon: Icon(Icons.qr_code_scanner),
-                  selectedIcon: Icon(Icons.qr_code_scanner, color: Colors.green),
+                TraceBottomNavigationItem(
+                  icon: Icons.qr_code_scanner_outlined,
+                  selectedIcon: Icons.qr_code_scanner_rounded,
                   label: 'Quét QR',
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
+                TraceBottomNavigationItem(
+                  icon: Icons.person_outline_rounded,
+                  selectedIcon: Icons.person_rounded,
                   label: 'Cá nhân',
                 ),
               ];
 
-        // Đảm bảo currentIndex không bị vọt quá giới hạn khi chuyển từ đã đăng nhập -> chưa đăng nhập
-        int validIndex = _currentIndex;
-        if (validIndex >= tabs.length) {
-          validIndex = tabs.length - 1;
-        }
+        final validIndex =
+            _currentIndex < tabs.length ? _currentIndex : tabs.length - 1;
 
         return Scaffold(
+          extendBody: true,
           body: tabs[validIndex],
-          bottomNavigationBar: NavigationBar(
+          bottomNavigationBar: TraceBottomNavigation(
             selectedIndex: validIndex,
-            onDestinationSelected: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            destinations: destinations,
+            onDestinationSelected: (index) =>
+                setState(() => _currentIndex = index),
+            items: destinations,
           ),
         );
       },

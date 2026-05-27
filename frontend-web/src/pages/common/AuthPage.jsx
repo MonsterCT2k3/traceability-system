@@ -4,6 +4,7 @@ import { UserOutlined, LockOutlined, IdcardOutlined, MailOutlined, PhoneOutlined
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import api from '../../lib/api';
+import { storeAuthSession } from '../../lib/authSession';
 import {
   isWebAllowedRole,
   MOBILE_ONLY_ROLES,
@@ -40,9 +41,7 @@ const AuthPage = () => {
         return;
       }
 
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('userRole', role);
+      storeAuthSession({ accessToken, refreshToken, userRole: role });
       sessionStorage.setItem('loginSuccess', 'true');
       
       if (role === 'ADMIN') {

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart' as mlkit;
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart'
+    as mlkit;
 
 import 'package:frontend_mobile/core/network/api_client.dart';
 import 'package:frontend_mobile/injection_container.dart';
@@ -41,7 +42,8 @@ class _ScanTabState extends State<ScanTab> {
 
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_busy) return;
-    final value = capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
+    final value =
+        capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
     if (value == null || value.trim().isEmpty) return;
     await _processBarcode(value.trim());
   }
@@ -51,21 +53,22 @@ class _ScanTabState extends State<ScanTab> {
     setState(() {
       _busy = true;
     });
-    
+
     await _scannerController.stop();
 
     try {
       final responseData = await _traceByQrContent(raw);
-      final model = TraceModel.fromJson(Map<String, dynamic>.from(responseData));
-      
+      final model =
+          TraceModel.fromJson(Map<String, dynamic>.from(responseData));
+
       if (!mounted) return;
       setState(() => _busy = false);
-      
+
       final authState = context.read<AuthBloc>().state;
       if (authState is AuthAuthenticated) {
         context.read<HistoryBloc>().add(RecordHistoryEvent(model.unitSerial));
       }
-      
+
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -77,7 +80,7 @@ class _ScanTabState extends State<ScanTab> {
           ),
         ),
       );
-      
+
       if (mounted) {
         await _scannerController.start();
       }
@@ -237,30 +240,28 @@ class _ScanTabState extends State<ScanTab> {
           ),
           // Overlay
           _buildOverlay(),
-          
+
           // App bar layer
           SafeArea(
             child: Align(
               alignment: Alignment.topCenter,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                      onPressed: () {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
+                    const SizedBox(width: 48),
                     const Text(
                       'Quét QR',
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600),
                     ),
                     IconButton(
-                      icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off, color: Colors.white),
+                      icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off,
+                          color: Colors.white),
                       onPressed: () async {
                         await _scannerController.toggleTorch();
                         setState(() => _torchOn = !_torchOn);
@@ -271,13 +272,13 @@ class _ScanTabState extends State<ScanTab> {
               ),
             ),
           ),
-          
+
           // Bottom buttons
           SafeArea(
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 32.0),
+                padding: const EdgeInsets.only(bottom: 118.0),
                 child: GestureDetector(
                   onTap: _pickImage,
                   child: Column(
@@ -289,10 +290,12 @@ class _ScanTabState extends State<ScanTab> {
                           color: Colors.black45,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.image_outlined, color: Colors.white, size: 28),
+                        child: const Icon(Icons.image_outlined,
+                            color: Colors.white, size: 28),
                       ),
                       const SizedBox(height: 8),
-                      const Text('Tải ảnh', style: TextStyle(color: Colors.white, fontSize: 13)),
+                      const Text('Tải ảnh',
+                          style: TextStyle(color: Colors.white, fontSize: 13)),
                     ],
                   ),
                 ),
@@ -318,7 +321,7 @@ class _ScanTabState extends State<ScanTab> {
         final double width = constraints.maxWidth;
         final double height = constraints.maxHeight;
         const double scanAreaSize = 260.0;
-        
+
         final double borderHorizontal = (width - scanAreaSize) / 2;
         final double borderVertical = (height - scanAreaSize) / 2;
 
@@ -327,10 +330,18 @@ class _ScanTabState extends State<ScanTab> {
             Container(
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: Colors.black87.withOpacity(0.6), width: borderVertical),
-                  bottom: BorderSide(color: Colors.black87.withOpacity(0.6), width: borderVertical),
-                  left: BorderSide(color: Colors.black87.withOpacity(0.6), width: borderHorizontal),
-                  right: BorderSide(color: Colors.black87.withOpacity(0.6), width: borderHorizontal),
+                  top: BorderSide(
+                      color: Colors.black87.withOpacity(0.6),
+                      width: borderVertical),
+                  bottom: BorderSide(
+                      color: Colors.black87.withOpacity(0.6),
+                      width: borderVertical),
+                  left: BorderSide(
+                      color: Colors.black87.withOpacity(0.6),
+                      width: borderHorizontal),
+                  right: BorderSide(
+                      color: Colors.black87.withOpacity(0.6),
+                      width: borderHorizontal),
                 ),
               ),
             ),

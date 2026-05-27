@@ -1,47 +1,82 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { notification } from 'antd';
-import { jwtDecode } from 'jwt-decode';
+import { message, notification } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
+import { AUTH_SESSION_CHANGED_EVENT } from '../../lib/authSession';
 
 const WebSocketContext = createContext(null);
+const RAW_BATCH_CREATE_MESSAGE_KEY = 'raw-batch-create';
+const PENDING_RAW_BATCH_CREATION_KEY = 'pendingRawBatchCreationId';
 
 export const WebSocketProvider = ({ children }) => {
   const [client, setClient] = useState(null);
+  const [authVersion, setAuthVersion] = useState(0);
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
+    const refreshAuthSession = () => setAuthVersion((version) => version + 1);
+    const handleStorageChange = (event) => {
+      if (event.key === 'accessToken') {
+        refreshAuthSession();
+      }
+    };
 
-    let userId = null;
-    try {
-      const decoded = jwtDecode(token);
-      userId = decoded.userId;
-    } catch (e) {
-      console.error('Invalid token', e);
-      return;
+    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, refreshAuthSession);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, refreshAuthSession);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setClient(null);
+      return undefined;
     }
 
-    if (!userId) return;
-
-    // Khởi tạo STOMP Client (kết nối qua API Gateway trên port 8080)
-    // Product Service đang lắng nghe ở path /ws, qua Gateway: /product/ws (Gateway sẽ strip /product)
-    const socket = new SockJS('http://localhost:8080/product/ws');
+    // Avoid keeping long-lived SockJS requests on the MVC gateway used for REST APIs.
+    const productWsUrl = import.meta.env.VITE_PRODUCT_WS_URL || 'http://localhost:8082/ws';
     const stompClient = new Client({
-      webSocketFactory: () => socket,
+      webSocketFactory: () => new SockJS(productWsUrl),
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
       reconnectDelay: 5000,
       debug: (str) => {
         // console.log(str);
       },
       onConnect: () => {
         console.log('Connected to WebSocket!');
-        // Subscribe vào topic dành riêng cho user này
-        stompClient.subscribe(`/topic/blockchain-updates/${userId}`, (message) => {
-          if (message.body) {
-            const data = JSON.parse(message.body);
+        stompClient.subscribe('/user/queue/blockchain-updates', (stompMessage) => {
+          if (stompMessage.body) {
+            const data = JSON.parse(stompMessage.body);
             console.log('Received WebSocket message:', data);
+
+            const pendingRawBatchId = sessionStorage.getItem(PENDING_RAW_BATCH_CREATION_KEY);
+            const isPendingRawBatchCreation = data.type === 'RAW_BATCH'
+              && (pendingRawBatchId === 'PENDING_REQUEST' || pendingRawBatchId === data.entityId);
+
+            if (isPendingRawBatchCreation) {
+              sessionStorage.removeItem(PENDING_RAW_BATCH_CREATION_KEY);
+              if (data.success) {
+                message.success({
+                  key: RAW_BATCH_CREATE_MESSAGE_KEY,
+                  content: `Tạo lô nguyên liệu thành công! TxHash: ${data.txHash}`,
+                  duration: 6,
+                });
+              } else {
+                message.error({
+                  key: RAW_BATCH_CREATE_MESSAGE_KEY,
+                  content: `Tạo lô nguyên liệu thất bại: ${data.error}`,
+                  duration: 6,
+                });
+              }
+              queryClient.invalidateQueries({ queryKey: ['myRawBatches'] });
+              return;
+            }
 
             if (data.success) {
               notification.success({
@@ -50,6 +85,7 @@ export const WebSocketProvider = ({ children }) => {
                 duration: 5,
               });
               // Refetch lại dữ liệu để giao diện tự cập nhật mã hash
+              queryClient.invalidateQueries({ queryKey: ['myRawBatches'] });
               queryClient.invalidateQueries({ queryKey: ['rawBatches'] });
               queryClient.invalidateQueries({ queryKey: ['pallets'] });
             } else {
@@ -74,18 +110,21 @@ export const WebSocketProvider = ({ children }) => {
     // ==========================================
     // 2. STOMP Client for Trade Logistics Service
     // ==========================================
-    const tradeSocket = new SockJS('http://localhost:8080/trade/ws');
+    const tradeWsUrl = import.meta.env.VITE_TRADE_WS_URL || 'http://localhost:8085/ws';
     const tradeStompClient = new Client({
-      webSocketFactory: () => tradeSocket,
+      webSocketFactory: () => new SockJS(tradeWsUrl),
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
       reconnectDelay: 5000,
       debug: (str) => {
         // console.log(str);
       },
       onConnect: () => {
         console.log('Connected to Trade WebSocket!');
-        tradeStompClient.subscribe(`/topic/user/${userId}/orders`, (message) => {
-          if (message.body) {
-            const data = JSON.parse(message.body);
+        tradeStompClient.subscribe('/user/queue/orders', (stompMessage) => {
+          if (stompMessage.body) {
+            const data = JSON.parse(stompMessage.body);
             console.log('Received Trade WebSocket message:', data);
 
             notification.info({
@@ -109,10 +148,11 @@ export const WebSocketProvider = ({ children }) => {
     tradeStompClient.activate();
 
     return () => {
+      setClient(null);
       stompClient.deactivate();
       tradeStompClient.deactivate();
     };
-  }, [queryClient]);
+  }, [queryClient, authVersion]);
 
   return (
     <WebSocketContext.Provider value={client}>

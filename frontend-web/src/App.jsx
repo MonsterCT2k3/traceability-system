@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { message } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WebSocketProvider } from './components/providers/WebSocketProvider';
+import { clearAuthSession } from './lib/authSession';
 import AuthPage from './pages/common/AuthPage';
 // Import các trang sẽ tạo ở bước sau
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -39,6 +40,12 @@ const PrivateRoute = ({ element, allowedRoles }) => {
     }
   }, [normalized]);
 
+  useEffect(() => {
+    if (token && !isWebAllowedRole(normalized) && !MOBILE_ONLY_ROLES.includes(normalized)) {
+      clearAuthSession();
+    }
+  }, [token, normalized]);
+
   if (!token) {
     return <Navigate to="/login" replace />;
   }
@@ -48,9 +55,6 @@ const PrivateRoute = ({ element, allowedRoles }) => {
     if (MOBILE_ONLY_ROLES.includes(normalized)) {
       return <Navigate to="/mobile-only" replace />;
     }
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userRole');
     return <Navigate to="/login" replace />;
   }
 

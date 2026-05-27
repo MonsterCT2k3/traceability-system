@@ -6,6 +6,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import vn.edu.kma.trade_logistics_service.entity.TradeOrder;
 import vn.edu.kma.trade_logistics_service.entity.TransferRecord;
 import vn.edu.kma.trade_logistics_service.repository.TradeOrderRepository;
@@ -77,8 +79,7 @@ public class BlockchainReplyListener {
 
     private void notifyUser(String userId, String type, String entityId, boolean success, String txHash, String errorMsg) {
         if (userId == null) return;
-        String topic = "/topic/blockchain-updates/" + userId;
-        
+
         java.util.Map<String, Object> payload = new java.util.HashMap<>();
         payload.put("type", type);
         payload.put("entityId", entityId);
@@ -88,8 +89,23 @@ public class BlockchainReplyListener {
         } else {
             payload.put("error", errorMsg);
         }
-        
-        messagingTemplate.convertAndSend(topic, payload);
-        log.info("Sent WS message to {}: {}", topic, payload);
+
+        sendAfterCommit(() -> {
+            messagingTemplate.convertAndSendToUser(userId, "/queue/blockchain-updates", payload);
+            log.info("Sent WS message to user {}: {}", userId, payload);
+        });
+    }
+
+    private void sendAfterCommit(Runnable sendAction) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sendAction.run();
+                }
+            });
+        } else {
+            sendAction.run();
+        }
     }
 }

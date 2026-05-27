@@ -6,59 +6,63 @@ class ApiClient {
   final FlutterSecureStorage secureStorage;
 
   ApiClient({required this.dio, required this.secureStorage}) {
-    dio.options.baseUrl = 'https://b021-2405-4802-499-d890-fc39-3d39-2fa1-4766.ngrok-free.app';
+    dio.options.baseUrl = 'https://9749-118-71-204-229.ngrok-free.app';
     dio.options.connectTimeout = const Duration(seconds: 10);
     dio.options.receiveTimeout = const Duration(seconds: 10);
 
-    dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await secureStorage.read(key: 'accessToken');
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        return handler.next(options);
-      },
-      onError: (DioException e, handler) async {
-        if (e.response?.statusCode == 401) {
-          // Attempt to refresh token
-          final refreshToken = await secureStorage.read(key: 'refreshToken');
-          if (refreshToken != null) {
-            try {
-              // Create a new Dio instance to avoid infinite interceptor loops
-              final tokenDio = Dio(BaseOptions(baseUrl: dio.options.baseUrl));
-              final refreshResponse = await tokenDio.post(
-                '/identity/api/v1/auth/refresh',
-                data: {'refreshToken': refreshToken},
-              );
+    dio.interceptors
+        .add(InterceptorsWrapper(onRequest: (options, handler) async {
+      final token = await secureStorage.read(key: 'accessToken');
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
+      return handler.next(options);
+    }, onError: (DioException e, handler) async {
+      if (e.response?.statusCode == 401) {
+        // Attempt to refresh token
+        final refreshToken = await secureStorage.read(key: 'refreshToken');
+        if (refreshToken != null) {
+          try {
+            // Create a new Dio instance to avoid infinite interceptor loops
+            final tokenDio = Dio(BaseOptions(baseUrl: dio.options.baseUrl));
+            final refreshResponse = await tokenDio.post(
+              '/identity/api/v1/auth/refresh',
+              data: {'refreshToken': refreshToken},
+            );
 
-              if (refreshResponse.statusCode == 200) {
-                final newAccessToken = refreshResponse.data['result']['accessToken'];
-                final newRefreshToken = refreshResponse.data['result']['refreshToken'];
+            if (refreshResponse.statusCode == 200) {
+              final newAccessToken =
+                  refreshResponse.data['result']['accessToken'];
+              final newRefreshToken =
+                  refreshResponse.data['result']['refreshToken'];
 
-                await secureStorage.write(key: 'accessToken', value: newAccessToken);
-                await secureStorage.write(key: 'refreshToken', value: newRefreshToken);
+              await secureStorage.write(
+                  key: 'accessToken', value: newAccessToken);
+              await secureStorage.write(
+                  key: 'refreshToken', value: newRefreshToken);
 
-                // Retry original request with new token
-                e.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
-                final retryResponse = await tokenDio.fetch(e.requestOptions);
-                return handler.resolve(retryResponse);
-              }
-            } catch (refreshError) {
-              // Refresh failed (e.g., refresh token expired)
-              await secureStorage.delete(key: 'accessToken');
-              await secureStorage.delete(key: 'refreshToken');
+              // Retry original request with new token
+              e.requestOptions.headers['Authorization'] =
+                  'Bearer $newAccessToken';
+              final retryResponse = await tokenDio.fetch(e.requestOptions);
+              return handler.resolve(retryResponse);
             }
-          } else {
+          } catch (refreshError) {
+            // Refresh failed (e.g., refresh token expired)
             await secureStorage.delete(key: 'accessToken');
             await secureStorage.delete(key: 'refreshToken');
           }
+        } else {
+          await secureStorage.delete(key: 'accessToken');
+          await secureStorage.delete(key: 'refreshToken');
         }
-        return handler.next(e);
       }
-    ));
+      return handler.next(e);
+    }));
   }
 
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
+  Future<Response> get(String path,
+      {Map<String, dynamic>? queryParameters}) async {
     return await dio.get(path, queryParameters: queryParameters);
   }
 

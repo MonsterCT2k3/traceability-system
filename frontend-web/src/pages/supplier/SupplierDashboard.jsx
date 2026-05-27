@@ -13,6 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import api from '../../lib/api';
+import { clearAuthSession } from '../../lib/authSession';
 import SupplierOverview from './components/SupplierOverview';
 import SupplierRawBatchManagement from './components/SupplierRawBatchManagement';
 import SupplierOrderManagement from './components/orders/SupplierOrderManagement';
@@ -60,9 +61,7 @@ const SupplierDashboard = () => {
   }, [token]);
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userRole');
+    clearAuthSession();
     navigate('/login');
   };
 

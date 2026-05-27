@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/trace_bottom_navigation.dart';
 import '../../../main/presentation/pages/tabs/profile_tab.dart';
 import 'retailer_orders_tab.dart';
 
-/// Giao diện chính dành cho tài khoản RETAILER.
 class RetailerShellPage extends StatefulWidget {
   const RetailerShellPage({super.key});
 
@@ -18,7 +18,7 @@ class _RetailerShellPageState extends State<RetailerShellPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_index == 0 ? 'Đặt hàng thành phẩm' : 'Cá nhân'),
+        title: Text(_index == 0 ? 'Đặt Hàng Thành Phẩm' : 'Cá Nhân'),
         centerTitle: true,
       ),
       body: IndexedStack(
@@ -28,18 +28,18 @@ class _RetailerShellPageState extends State<RetailerShellPage> {
           ProfileTab(),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: TraceBottomNavigation(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.shopping_bag_outlined),
-            selectedIcon: Icon(Icons.shopping_bag),
+        onDestinationSelected: (index) => setState(() => _index = index),
+        items: const [
+          TraceBottomNavigationItem(
+            icon: Icons.shopping_bag_outlined,
+            selectedIcon: Icons.shopping_bag_rounded,
             label: 'Đặt hàng',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+          TraceBottomNavigationItem(
+            icon: Icons.person_outline_rounded,
+            selectedIcon: Icons.person_rounded,
             label: 'Cá nhân',
           ),
         ],

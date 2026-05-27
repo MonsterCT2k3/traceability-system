@@ -3,6 +3,7 @@ import { Result, Button, message } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AndroidOutlined } from '@ant-design/icons';
 import './MobileOnlyNotice.css';
+import { clearAuthSession } from '../../lib/authSession';
 
 const SHOW_DELAY_MS = 450;
 
@@ -32,9 +33,7 @@ const MobileOnlyNotice = () => {
   }, [fromLogin]);
 
   const clearAndGoLogin = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userRole');
+    clearAuthSession();
     navigate('/login', { replace: true });
   };
 

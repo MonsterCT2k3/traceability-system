@@ -21,6 +21,12 @@ import api from '../../../lib/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const RAW_BATCH_CREATE_MESSAGE_KEY = 'raw-batch-create';
+const PENDING_RAW_BATCH_CREATION_KEY = 'pendingRawBatchCreationId';
+const RAW_BATCH_CONFIRMATION_ATTEMPTS = 60;
+const RAW_BATCH_CONFIRMATION_DELAY_MS = 1000;
+
+const delay = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 const SupplierRawBatchManagement = () => {
   const [form] = Form.useForm();
@@ -79,8 +85,51 @@ const SupplierRawBatchManagement = () => {
     }
   };
 
+  const awaitRawBatchConfirmation = async (rawBatchId) => {
+    for (let attempt = 0; attempt < RAW_BATCH_CONFIRMATION_ATTEMPTS; attempt += 1) {
+      if (sessionStorage.getItem(PENDING_RAW_BATCH_CREATION_KEY) !== rawBatchId) {
+        return;
+      }
+
+      try {
+        const response = await api.get(`/product/api/v1/raw-batches/${rawBatchId}`);
+        const txHash = response.data?.result?.anchorTxHash;
+        if (txHash && txHash !== 'PENDING') {
+          sessionStorage.removeItem(PENDING_RAW_BATCH_CREATION_KEY);
+          message.success({
+            key: RAW_BATCH_CREATE_MESSAGE_KEY,
+            content: `Tạo lô nguyên liệu thành công! TxHash: ${txHash}`,
+            duration: 6,
+          });
+          queryClient.invalidateQueries({ queryKey: ['myRawBatches'] });
+          return;
+        }
+      } catch {
+        // The WebSocket error path reports failed anchoring; keep polling for transient reads.
+      }
+
+      await delay(RAW_BATCH_CONFIRMATION_DELAY_MS);
+    }
+
+    if (sessionStorage.getItem(PENDING_RAW_BATCH_CREATION_KEY) === rawBatchId) {
+      sessionStorage.removeItem(PENDING_RAW_BATCH_CREATION_KEY);
+      message.warning({
+        key: RAW_BATCH_CREATE_MESSAGE_KEY,
+        content: 'Lô nguyên liệu đã được tạo và đang chờ blockchain xác nhận.',
+        duration: 6,
+      });
+    }
+  };
+
   const onFinish = async (values) => {
     setIsSubmitting(true);
+    sessionStorage.setItem(PENDING_RAW_BATCH_CREATION_KEY, 'PENDING_REQUEST');
+    message.open({
+      key: RAW_BATCH_CREATE_MESSAGE_KEY,
+      type: 'loading',
+      content: 'Đang tạo lô nguyên liệu...',
+      duration: 0,
+    });
     try {
       const harvestedAt = values.harvestedAt ? values.harvestedAt.format('YYYY-MM-DD') : '';
 
@@ -91,12 +140,19 @@ const SupplierRawBatchManagement = () => {
 
       const response = await api.post('/product/api/v1/raw-batches', payload);
       const r = response.data.result || {};
-      message.success('Tạo lô nguyên liệu thành công! (Tx: ' + (r.anchorTxHash || r.txHash || '—') + ')');
+      if (r.rawBatchId && sessionStorage.getItem(PENDING_RAW_BATCH_CREATION_KEY)) {
+        sessionStorage.setItem(PENDING_RAW_BATCH_CREATION_KEY, r.rawBatchId);
+        void awaitRawBatchConfirmation(r.rawBatchId);
+      }
       form.resetFields();
       setIsCreating(false);
       queryClient.invalidateQueries({ queryKey: ['myRawBatches'] });
     } catch (error) {
-      message.error(error.response?.data?.message || 'Lỗi khi tạo lô nguyên liệu');
+      sessionStorage.removeItem(PENDING_RAW_BATCH_CREATION_KEY);
+      message.error({
+        key: RAW_BATCH_CREATE_MESSAGE_KEY,
+        content: error.response?.data?.message || 'Lỗi khi tạo lô nguyên liệu',
+      });
     } finally {
       setIsSubmitting(false);
     }
