@@ -15,12 +15,20 @@ const QUERY_KEY = ['manufactureRetailIncomingOrders'];
 const fetchIncomingRetailOrders = async () => {
   const res = await api.get('/trade/api/v1/orders/mine/seller');
   const all = res.data?.result ?? [];
-  return all.filter((o) => o.orderType === ORDER_TYPE.RETAILER_TO_MANUFACTURER);
+  return all.filter((o) =>
+    o.orderType === ORDER_TYPE.RETAILER_TO_MANUFACTURER
+    || o.orderType === ORDER_TYPE.MANUFACTURER_TO_MANUFACTURER);
 };
 
 const lineColumns = [
   { title: '#', dataIndex: 'lineIndex', key: 'lineIndex', width: 56 },
-  { 
+  {
+    title: 'Pallet',
+    dataIndex: 'targetPalletId',
+    key: 'targetPalletId',
+    render: (id) => id || '—',
+  },
+  {
     title: 'Sản phẩm', 
     dataIndex: 'productId', 
     key: 'productId', 
@@ -182,10 +190,10 @@ const ManufactureRetailOrdersManagement = () => {
   return (
     <div>
       <Title level={4} style={{ marginTop: 0 }}>
-        Đơn hàng từ Retailer
+        Đơn hàng gửi tới nhà sản xuất
       </Title>
       <Paragraph type="secondary">
-        Quản lý đơn loại <strong>RETAILER_TO_MANUFACTURER</strong>: chấp nhận/từ chối đơn và gán đơn vị vận chuyển.
+        Quản lý đơn từ retailer và đơn mua pallet từ nhà sản xuất khác.
       </Paragraph>
       <Alert
         type="info"

@@ -19,7 +19,8 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, User>> login(String username, String password) async {
     try {
-      final loginResponse = await apiClient.post('/identity/api/v1/auth/login', data: {
+      final loginResponse =
+          await apiClient.post('/identity/api/v1/auth/login', data: {
         'username': username,
         'password': password,
       });
@@ -32,7 +33,8 @@ class AuthRepositoryImpl implements AuthRepository {
         await secureStorage.write(key: 'accessToken', value: accessToken);
         await secureStorage.write(key: 'refreshToken', value: refreshToken);
 
-        final profileResponse = await apiClient.get('/identity/api/v1/users/profile');
+        final profileResponse =
+            await apiClient.get('/identity/api/v1/users/profile');
         if (profileResponse.statusCode == 200) {
           final userData = profileResponse.data['result'];
           final user = User.fromJson(userData);
@@ -45,10 +47,12 @@ class AuthRepositoryImpl implements AuthRepository {
           }
           return Right(user);
         } else {
-          return const Left(ServerFailure('Không thể lấy thông tin người dùng'));
+          return const Left(
+              ServerFailure('Không thể lấy thông tin người dùng'));
         }
       } else {
-        return const Left(ServerFailure('Tài khoản hoặc mật khẩu không chính xác'));
+        return const Left(
+            ServerFailure('Tài khoản hoặc mật khẩu không chính xác'));
       }
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Lỗi kết nối đến máy chủ';
@@ -59,9 +63,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> register(String username, String password, String fullName, String email, String phone) async {
+  Future<Either<Failure, void>> register(String username, String password,
+      String fullName, String email, String phone) async {
     try {
-      final response = await apiClient.post('/identity/api/v1/auth/register', data: {
+      final response =
+          await apiClient.post('/identity/api/v1/auth/register', data: {
         'username': username,
         'password': password,
         'fullName': fullName,
@@ -83,9 +89,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, User>> updateProfile(String fullName, String email, String phone, String description, String location) async {
+  Future<Either<Failure, User>> updateProfile(String fullName, String email,
+      String phone, String description, String location) async {
     try {
-      final response = await apiClient.dio.put('/identity/api/v1/users/profile', data: {
+      final response =
+          await apiClient.dio.put('/identity/api/v1/users/profile', data: {
         'fullName': fullName,
         'email': email,
         'phone': phone,
@@ -112,10 +120,12 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       String fileName = imageFile.path.split('/').last;
       FormData formData = FormData.fromMap({
-        "file": await MultipartFile.fromFile(imageFile.path, filename: fileName),
+        "file":
+            await MultipartFile.fromFile(imageFile.path, filename: fileName),
       });
 
-      final response = await apiClient.dio.post('/identity/api/v1/users/profile/avatar', data: formData);
+      final response = await apiClient.dio
+          .post('/identity/api/v1/users/profile/avatar', data: formData);
 
       if (response.statusCode == 200) {
         final userData = response.data['result'];
@@ -134,35 +144,43 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, List<RoleRequest>>> getMyRoleRequests() async {
     try {
-      final response = await apiClient.get('/identity/api/v1/users/role-requests');
+      final response =
+          await apiClient.get('/identity/api/v1/users/role-requests');
       if (response.statusCode == 200) {
         final list = response.data['result'];
         if (list is! List) {
           return const Right([]);
         }
         return Right(
-          list.map((e) => RoleRequest.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
+          list
+              .map((e) =>
+                  RoleRequest.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList(),
         );
       }
       return const Left(ServerFailure('Không tải được danh sách đơn'));
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Lỗi kết nối đến máy chủ';
-      return Left(ServerFailure(message is String ? message : message.toString()));
+      return Left(
+          ServerFailure(message is String ? message : message.toString()));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, RoleRequest>> createRoleRequest(String requestedRole, String description) async {
+  Future<Either<Failure, RoleRequest>> createRoleRequest(
+      String requestedRole, String description) async {
     try {
-      final response = await apiClient.post('/identity/api/v1/users/role-requests', data: {
+      final response =
+          await apiClient.post('/identity/api/v1/users/role-requests', data: {
         'requestedRole': requestedRole,
         'description': description,
       });
       if (response.statusCode == 200) {
         final data = response.data['result'];
-        return Right(RoleRequest.fromJson(Map<String, dynamic>.from(data as Map)));
+        return Right(
+            RoleRequest.fromJson(Map<String, dynamic>.from(data as Map)));
       }
       return const Left(ServerFailure('Gửi đơn thất bại'));
     } on DioException catch (e) {
@@ -193,7 +211,8 @@ class AuthRepositoryImpl implements AuthRepository {
       }
       // Token is automatically injected by ApiClient interceptor
       // If expired, ApiClient interceptor will attempt to refresh it automatically
-      final profileResponse = await apiClient.get('/identity/api/v1/users/profile');
+      final profileResponse =
+          await apiClient.get('/identity/api/v1/users/profile');
       if (profileResponse.statusCode == 200) {
         final userData = profileResponse.data['result'];
         final user = User.fromJson(userData);

@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import vn.edu.kma.common.dto.response.ApiResponse;
 import vn.edu.kma.traceability_core_service.dto.response.VerifyHashesResponse;
+import vn.edu.kma.traceability_core_service.dto.request.VerifyTransformedDirectRequest;
+import vn.edu.kma.traceability_core_service.dto.response.VerifyTransformedDirectResponse;
 
 import java.util.Map;
 
@@ -27,5 +29,8 @@ public interface BlockchainClient {
 
     @PostMapping("/verify-hashes")
     ApiResponse<VerifyHashesResponse> verifyHashes(@RequestBody vn.edu.kma.traceability_core_service.dto.request.VerifyHashesRequest body);
+
+    @PostMapping("/verify-transformed-direct")
+    ApiResponse<VerifyTransformedDirectResponse> verifyTransformedDirect(@RequestBody VerifyTransformedDirectRequest body);
 }
 

@@ -37,6 +37,18 @@ public class ProductController {
     }
 
 
+    @GetMapping("/my")
+    @PreAuthorize("hasAnyRole('MANUFACTURER','ADMIN')")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
+    public ResponseEntity<ApiResponse<List<Product>>> getMyProducts(
+            @RequestHeader("Authorization") String tokenHeader) {
+        return ResponseEntity.ok(ApiResponse.<List<Product>>builder()
+                .code(200)
+                .message("Lay catalog cua nha san xuat thanh cong")
+                .result(productService.getMyProducts(tokenHeader))
+                .build());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<Product>> getProductById(@PathVariable String id) {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.<Product>builder().code(200)

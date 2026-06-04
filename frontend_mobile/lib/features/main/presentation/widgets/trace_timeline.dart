@@ -14,8 +14,14 @@ class TraceTimeline extends StatelessWidget {
           style: TextStyle(color: Colors.black54, fontStyle: FontStyle.italic));
     }
 
-    final rawBatchEvents = trace.historyEvents.where((e) => e.eventType.startsWith('RAW_BATCH')).toList();
-    final mainEvents = trace.historyEvents.where((e) => !e.eventType.startsWith('RAW_BATCH')).toList();
+    final rawBatchEvents = trace.directTrace == null
+        ? trace.historyEvents
+            .where((e) => e.eventType.startsWith('RAW_BATCH'))
+            .toList()
+        : <TraceHistoryEventEntity>[];
+    final mainEvents = trace.historyEvents
+        .where((e) => !e.eventType.startsWith('RAW_BATCH'))
+        .toList();
 
     return Column(
       children: [
@@ -41,12 +47,15 @@ class TraceTimeline extends StatelessWidget {
   Widget _buildDownArrow() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Icon(Icons.arrow_downward_rounded, color: Colors.blue.shade300, size: 36),
+      child: Icon(Icons.arrow_downward_rounded,
+          color: Colors.blue.shade300, size: 36),
     );
   }
 
-  Widget _buildRawBatchesCard(BuildContext context, List<TraceHistoryEventEntity> rawEvents) {
-    final createdEvents = rawEvents.where((e) => e.eventType == 'RAW_BATCH_CREATED').toList();
+  Widget _buildRawBatchesCard(
+      BuildContext context, List<TraceHistoryEventEntity> rawEvents) {
+    final createdEvents =
+        rawEvents.where((e) => e.eventType == 'RAW_BATCH_CREATED').toList();
     if (createdEvents.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -56,7 +65,10 @@ class TraceTimeline extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.blue.shade200, width: 1.5),
         boxShadow: [
-          BoxShadow(color: Colors.blue.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.blue.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -66,15 +78,20 @@ class TraceTimeline extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.blue.shade50,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(14)),
               border: Border(bottom: BorderSide(color: Colors.blue.shade100)),
             ),
             child: Row(
               children: [
-                Icon(Icons.inventory_2_outlined, color: Colors.blue.shade700, size: 20),
+                Icon(Icons.inventory_2_outlined,
+                    color: Colors.blue.shade700, size: 20),
                 const SizedBox(width: 8),
                 Text('Nguyên liệu đầu vào',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue.shade900)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.blue.shade900)),
               ],
             ),
           ),
@@ -86,13 +103,15 @@ class TraceTimeline extends StatelessWidget {
                   onTap: () => _showRawBatchDetails(context, rawEvent),
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 24,
                           backgroundColor: Colors.grey.shade100,
-                          backgroundImage: (rawEvent.actorAvatarUrl != null && rawEvent.actorAvatarUrl!.isNotEmpty)
+                          backgroundImage: (rawEvent.actorAvatarUrl != null &&
+                                  rawEvent.actorAvatarUrl!.isNotEmpty)
                               ? NetworkImage(rawEvent.actorAvatarUrl!)
                               : NetworkImage(
                                       'https://ui-avatars.com/api/?name=${Uri.encodeComponent(rawEvent.actorName ?? 'A')}&background=random&color=fff')
@@ -104,18 +123,24 @@ class TraceTimeline extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                rawEvent.eventDescription.replaceAll('Khai báo lô nguyên liệu gốc: ', ''),
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black87),
+                                rawEvent.eventDescription.replaceAll(
+                                    'Khai báo lô nguyên liệu gốc: ', ''),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Colors.black87),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 rawEvent.actorName ?? '',
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 12),
                               ),
                             ],
                           ),
                         ),
-                        Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
+                        Icon(Icons.chevron_right_rounded,
+                            size: 20, color: Colors.grey.shade400),
                       ],
                     ),
                   ),
@@ -128,12 +153,14 @@ class TraceTimeline extends StatelessWidget {
     );
   }
 
-  Widget _buildMainEventCard(BuildContext context, TraceHistoryEventEntity event) {
+  Widget _buildMainEventCard(
+      BuildContext context, TraceHistoryEventEntity event) {
     String displayTime = event.timestamp ?? '';
     if (displayTime.isNotEmpty) {
       try {
         final d = DateTime.parse(displayTime).toLocal();
-        displayTime = '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+        displayTime =
+            '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
       } catch (_) {}
     }
 
@@ -144,9 +171,14 @@ class TraceTimeline extends StatelessWidget {
         margin: const EdgeInsets.only(top: 12),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isBlockchain ? Colors.green.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+          color: isBlockchain
+              ? Colors.green.withOpacity(0.1)
+              : Colors.blue.withOpacity(0.1),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: isBlockchain ? Colors.green.withOpacity(0.3) : Colors.blue.withOpacity(0.3)),
+          border: Border.all(
+              color: isBlockchain
+                  ? Colors.green.withOpacity(0.3)
+                  : Colors.blue.withOpacity(0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -156,7 +188,10 @@ class TraceTimeline extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               isBlockchain ? 'Đã xác thực Blockchain' : 'Xác thực bởi Hệ thống',
-              style: TextStyle(color: isBlockchain ? Colors.green : Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: isBlockchain ? Colors.green : Colors.blue,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -176,7 +211,10 @@ class TraceTimeline extends StatelessWidget {
             Icon(Icons.warning_amber_rounded, size: 16, color: Colors.red),
             SizedBox(width: 6),
             Text('Dữ liệu không khớp Blockchain',
-                style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                    color: Colors.red,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
       );
@@ -212,7 +250,8 @@ class TraceTimeline extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 stops: const [0.0, 1.0],
               ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(18)),
             ),
             child: Row(
               children: [
@@ -227,13 +266,17 @@ class TraceTimeline extends StatelessWidget {
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
-                      BoxShadow(color: themeColor.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4)),
+                      BoxShadow(
+                          color: themeColor.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4)),
                     ],
                   ),
                   child: CircleAvatar(
                     radius: 38,
                     backgroundColor: Colors.white,
-                    backgroundImage: (event.actorAvatarUrl != null && event.actorAvatarUrl!.isNotEmpty)
+                    backgroundImage: (event.actorAvatarUrl != null &&
+                            event.actorAvatarUrl!.isNotEmpty)
                         ? NetworkImage(event.actorAvatarUrl!)
                         : NetworkImage(
                                 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(event.actorName ?? 'A')}&background=random&color=fff')
@@ -247,19 +290,30 @@ class TraceTimeline extends StatelessWidget {
                     children: [
                       Text(
                         event.actorName ?? 'Hệ thống',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: themeColor.shade900),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                            color: themeColor.shade900),
                       ),
                       const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: themeColor.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: themeColor.withOpacity(0.2)),
+                          border:
+                              Border.all(color: themeColor.withOpacity(0.2)),
                         ),
                         child: Text(
-                          isManufacturer ? 'Nhà Sản Xuất' : 'Nhà Phân Phối / Bán Lẻ',
-                          style: TextStyle(color: themeColor.shade700, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          isManufacturer
+                              ? 'Nhà Sản Xuất'
+                              : 'Nhà Phân Phối / Bán Lẻ',
+                          style: TextStyle(
+                              color: themeColor.shade700,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5),
                         ),
                       ),
                     ],
@@ -276,10 +330,14 @@ class TraceTimeline extends StatelessWidget {
               children: [
                 Text(
                   event.eventDescription,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Colors.black87),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: Colors.black87),
                 ),
                 const SizedBox(height: 16),
-                if (displayTime.isNotEmpty) _buildInfoRow(Icons.access_time_rounded, displayTime),
+                if (displayTime.isNotEmpty)
+                  _buildInfoRow(Icons.access_time_rounded, displayTime),
                 if (event.location != null && event.location!.isNotEmpty)
                   _buildInfoRow(Icons.location_on_rounded, event.location!),
                 if (verificationBadge != null)
@@ -314,12 +372,14 @@ class TraceTimeline extends StatelessWidget {
     );
   }
 
-  void _showRawBatchDetails(BuildContext context, TraceHistoryEventEntity event) {
+  void _showRawBatchDetails(
+      BuildContext context, TraceHistoryEventEntity event) {
     String displayTime = event.timestamp ?? '';
     if (displayTime.isNotEmpty) {
       try {
         final d = DateTime.parse(displayTime).toLocal();
-        displayTime = '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+        displayTime =
+            '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
       } catch (_) {}
     }
 
@@ -327,7 +387,8 @@ class TraceTimeline extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(24.0),
@@ -340,38 +401,61 @@ class TraceTimeline extends StatelessWidget {
                   CircleAvatar(
                     radius: 48,
                     backgroundColor: Colors.grey.shade100,
-                    backgroundImage: (event.actorAvatarUrl != null && event.actorAvatarUrl!.isNotEmpty)
+                    backgroundImage: (event.actorAvatarUrl != null &&
+                            event.actorAvatarUrl!.isNotEmpty)
                         ? NetworkImage(event.actorAvatarUrl!)
-                        : NetworkImage('https://ui-avatars.com/api/?name=${Uri.encodeComponent(event.actorName ?? 'A')}&background=random&color=fff') as ImageProvider,
+                        : NetworkImage(
+                                'https://ui-avatars.com/api/?name=${Uri.encodeComponent(event.actorName ?? 'A')}&background=random&color=fff')
+                            as ImageProvider,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(event.actorName ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                        Text(event.actorName ?? '',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 18)),
                         const SizedBox(height: 2),
-                        Text('Nhà cung cấp nguyên liệu', style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                        Text('Nhà cung cấp nguyên liệu',
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 14)),
                       ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              Text(event.eventDescription, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue)),
+              Text(event.eventDescription,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.blue)),
               const SizedBox(height: 16),
-              if (displayTime.isNotEmpty) _buildDetailRow(Icons.access_time_rounded, 'Thời gian:', displayTime),
-              if (event.location != null && event.location!.isNotEmpty) _buildDetailRow(Icons.location_on_outlined, 'Địa điểm:', event.location!),
+              if (displayTime.isNotEmpty)
+                _buildDetailRow(
+                    Icons.access_time_rounded, 'Thời gian:', displayTime),
+              if (event.location != null && event.location!.isNotEmpty)
+                _buildDetailRow(
+                    Icons.location_on_outlined, 'Địa điểm:', event.location!),
               if (event.isVerifiedOnChain == true)
                 Container(
                   margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
-                  child: Row(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: const Row(
                     children: [
-                      const Icon(Icons.verified, size: 18, color: Colors.green),
-                      const SizedBox(width: 8),
-                      const Expanded(child: Text('Đã xác thực trên Blockchain', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13))),
+                      Icon(Icons.verified, size: 18, color: Colors.green),
+                      SizedBox(width: 8),
+                      Expanded(
+                          child: Text('Đã xác thực trên Blockchain',
+                              style: TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13))),
                     ],
                   ),
                 ),
@@ -383,10 +467,13 @@ class TraceTimeline extends StatelessWidget {
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Đóng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text('Đóng',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               )
             ],
@@ -408,9 +495,15 @@ class TraceTimeline extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                Text(label,
+                    style:
+                        TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: Colors.black87)),
+                Text(value,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
+                        color: Colors.black87)),
               ],
             ),
           ),

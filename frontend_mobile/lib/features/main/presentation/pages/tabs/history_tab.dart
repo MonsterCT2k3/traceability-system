@@ -26,7 +26,8 @@ class _HistoryTabState extends State<HistoryTab> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       final state = context.read<HistoryBloc>().state;
       if (state is HistoryLoaded && !state.hasReachedMax) {
         final nextPage = (state.historyList.length / 20).ceil();
@@ -46,8 +47,8 @@ class _HistoryTabState extends State<HistoryTab> {
       context,
       MaterialPageRoute(
         builder: (context) => BlocProvider<TraceBloc>(
-          create: (context) => sl<TraceBloc>()
-            ..add(GetTraceDetails(serial, isHistory: true)),
+          create: (context) =>
+              sl<TraceBloc>()..add(GetTraceDetails(serial, isHistory: true)),
           child: const TraceResultPage(),
         ),
       ),
@@ -70,10 +71,13 @@ class _HistoryTabState extends State<HistoryTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Lỗi: ${state.message}', style: const TextStyle(color: Colors.red)),
+                  Text('Lỗi: ${state.message}',
+                      style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => context.read<HistoryBloc>().add(const LoadHistoryEvent(page: 0)),
+                    onPressed: () => context
+                        .read<HistoryBloc>()
+                        .add(const LoadHistoryEvent(page: 0)),
                     child: const Text('Thử lại'),
                   ),
                 ],
@@ -91,11 +95,14 @@ class _HistoryTabState extends State<HistoryTab> {
 
             return RefreshIndicator(
               onRefresh: () async {
-                context.read<HistoryBloc>().add(const LoadHistoryEvent(page: 0));
+                context
+                    .read<HistoryBloc>()
+                    .add(const LoadHistoryEvent(page: 0));
               },
               child: ListView.separated(
                 controller: _scrollController,
-                itemCount: state.historyList.length + (state.hasReachedMax ? 0 : 1),
+                itemCount:
+                    state.historyList.length + (state.hasReachedMax ? 0 : 1),
                 separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   if (index >= state.historyList.length) {
@@ -108,10 +115,12 @@ class _HistoryTabState extends State<HistoryTab> {
                   final item = state.historyList[index];
                   String pad(int n) => n.toString().padLeft(2, '0');
                   final d = item.scannedAt;
-                  final formattedDate = '${pad(d.day)}/${pad(d.month)}/${d.year} ${pad(d.hour)}:${pad(d.minute)}:${pad(d.second)}';
+                  final formattedDate =
+                      '${pad(d.day)}/${pad(d.month)}/${d.year} ${pad(d.hour)}:${pad(d.minute)}:${pad(d.second)}';
 
                   return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 8.0),
                     leading: Container(
                       width: 50,
                       height: 50,
@@ -119,20 +128,24 @@ class _HistoryTabState extends State<HistoryTab> {
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: item.productImage != null && item.productImage!.isNotEmpty
+                      child: item.productImage != null &&
+                              item.productImage!.isNotEmpty
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.network(
                                 item.productImage!,
                                 fit: BoxFit.cover,
-                                errorBuilder: (c, o, s) => const Icon(Icons.inventory_2, color: Colors.grey),
+                                errorBuilder: (c, o, s) => const Icon(
+                                    Icons.inventory_2,
+                                    color: Colors.grey),
                               ),
                             )
                           : const Icon(Icons.inventory_2, color: Colors.grey),
                     ),
                     title: Text(
                       item.productName ?? 'Sản phẩm không rõ',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -141,19 +154,24 @@ class _HistoryTabState extends State<HistoryTab> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Seri: ${item.unitSerial}', style: const TextStyle(fontSize: 13)),
+                          Text('Seri: ${item.unitSerial}',
+                              style: const TextStyle(fontSize: 13)),
                           const SizedBox(height: 2),
                           Row(
                             children: [
-                              const Icon(Icons.access_time, size: 12, color: Colors.grey),
+                              const Icon(Icons.access_time,
+                                  size: 12, color: Colors.grey),
                               const SizedBox(width: 4),
-                              Text(formattedDate, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              Text(formattedDate,
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.grey)),
                             ],
                           ),
                         ],
                       ),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                    trailing:
+                        const Icon(Icons.chevron_right, color: Colors.grey),
                     onTap: () => _navigateToTrace(item.unitSerial),
                   );
                 },

@@ -19,5 +19,12 @@ public class CloudinaryService {
         Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
         return uploadResult.get("url").toString();
     }
+
+    public Map<?, ?> uploadReviewMedia(MultipartFile file, boolean video) throws IOException {
+        return cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                "resource_type", video ? "video" : "image",
+                "folder", "traceability/reviews"
+        ));
+    }
 }
 

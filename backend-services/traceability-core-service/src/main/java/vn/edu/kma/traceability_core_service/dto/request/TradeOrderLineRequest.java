@@ -13,6 +13,7 @@ public class TradeOrderLineRequest {
 
     /** MANUFACTURER_TO_SUPPLIER */
     private String targetRawBatchId;
+    private String targetPalletId;
     private String quantityRequested;
     private String unit;
 

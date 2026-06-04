@@ -34,13 +34,16 @@ class IntegrityBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 verificationError!,
-                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                    color: Colors.orange, fontWeight: FontWeight.w500),
               ),
             ),
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.orange, size: 20),
               onPressed: () {
-                context.read<TraceBloc>().add(VerifyTraceBlockchain(trace.unitSerial));
+                context
+                    .read<TraceBloc>()
+                    .add(VerifyTraceBlockchain(trace.unitSerial));
               },
             ),
           ],
@@ -68,7 +71,8 @@ class IntegrityBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 'Đang đối chiếu dữ liệu với Blockchain...',
-                style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500),
+                style:
+                    TextStyle(color: Colors.blue, fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -81,7 +85,9 @@ class IntegrityBanner extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isIntact ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+        color: isIntact
+            ? Colors.green.withOpacity(0.1)
+            : Colors.red.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: isIntact ? Colors.green : Colors.red),
       ),

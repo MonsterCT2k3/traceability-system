@@ -3,6 +3,8 @@ server:
 
 # Base URL cho QR catalog sản phẩm (link web). QR unit truy xuất chỉ chứa UUID, không dùng cấu hình này.
 app:
+  claim:
+    hmac-secret: ${CLAIM_HMAC_SECRET:dev-only-claim-secret-change-before-production-2026}
   trace:
     frontend-base-url: http://localhost:3000
   websocket:
@@ -28,8 +30,8 @@ spring:
     name: traceability-core-service
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 50MB
+      max-request-size: 55MB
   # Base URL blockchain-service (KHÔNG thêm / ở cuối). Nối thêm path: /ownership-change, /transformed-batch, /...
   url:
     blockchain-service: http://localhost:8083/api/v1/blockchain

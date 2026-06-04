@@ -1,30 +1,43 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:frontend_mobile/main.dart';
+import 'package:frontend_mobile/features/main/data/models/trace_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('parses direct trace response', () {
+    final trace = directTraceFromJson({
+      'currentNode': {
+        'id': 'output',
+        'nodeType': 'PALLET',
+        'code': 'PALLET-1',
+        'name': 'Banh sua',
+        'hasInputs': true,
+        'verificationStatus': 'NOT_VERIFIED',
+      },
+      'directInputs': [
+        {
+          'id': 'input',
+          'nodeType': 'PALLET',
+          'code': 'PALLET-0',
+          'name': 'Sua dac',
+          'actorName': 'Nha may sua',
+          'actorAvatarUrl': 'https://example.com/avatar.png',
+          'occurredAt': '2026-06-04',
+          'quantity': '500',
+          'unit': 'kg',
+          'processingMethod': 'Co dac',
+          'blockchainBatchIdHex': '0x1234',
+          'hasInputs': true,
+          'verificationStatus': 'VERIFIED',
+        }
+      ],
+      'verificationScope': 'CURRENT_AND_DIRECT_INPUTS',
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(trace.currentNode.id, 'output');
+    expect(trace.directInputs.single.name, 'Sua dac');
+    expect(trace.directInputs.single.hasInputs, isTrue);
+    expect(trace.directInputs.single.actorName, 'Nha may sua');
+    expect(trace.directInputs.single.quantity, '500');
+    expect(trace.directInputs.single.processingMethod, 'Co dac');
+    expect(trace.directInputs.single.blockchainBatchIdHex, '0x1234');
   });
 }

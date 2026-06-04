@@ -22,7 +22,8 @@ class TransporterRemoteDataSourceImpl implements TransporterRemoteDataSource {
     final raw = response.data;
     if (raw is Map && raw['result'] is List) {
       return (raw['result'] as List)
-          .map((e) => TradeOrderDto.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map((e) =>
+              TradeOrderDto.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
     }
     return [];
@@ -33,7 +34,8 @@ class TransporterRemoteDataSourceImpl implements TransporterRemoteDataSource {
     final response = await apiClient.get('/trade/api/v1/orders/$orderId');
     final raw = response.data;
     if (raw is Map && raw['result'] != null) {
-      return TradeOrderDto.fromJson(Map<String, dynamic>.from(raw['result'] as Map));
+      return TradeOrderDto.fromJson(
+          Map<String, dynamic>.from(raw['result'] as Map));
     }
     throw Exception('Failed to get order details');
   }
@@ -51,7 +53,8 @@ class TransporterRemoteDataSourceImpl implements TransporterRemoteDataSource {
   @override
   Future<Map<String, dynamic>?> getUserDirectory(String userId) async {
     try {
-      final response = await apiClient.get('/identity/api/v1/users/directory/by-id/${Uri.encodeComponent(userId)}');
+      final response = await apiClient.get(
+          '/identity/api/v1/users/directory/by-id/${Uri.encodeComponent(userId)}');
       final raw = response.data;
       if (raw is Map && raw['result'] != null) {
         return Map<String, dynamic>.from(raw['result'] as Map);
@@ -63,7 +66,8 @@ class TransporterRemoteDataSourceImpl implements TransporterRemoteDataSource {
   @override
   Future<Map<String, dynamic>?> getRawBatchDetail(String batchId) async {
     try {
-      final response = await apiClient.get('/product/api/v1/raw-batches/$batchId');
+      final response =
+          await apiClient.get('/product/api/v1/raw-batches/$batchId');
       final raw = response.data;
       if (raw is Map && raw['result'] != null) {
         return Map<String, dynamic>.from(raw['result'] as Map);
@@ -75,7 +79,8 @@ class TransporterRemoteDataSourceImpl implements TransporterRemoteDataSource {
   @override
   Future<Map<String, dynamic>?> getProductDetail(String productId) async {
     try {
-      final response = await apiClient.get('/catalog/api/v1/products/$productId');
+      final response =
+          await apiClient.get('/catalog/api/v1/products/$productId');
       final raw = response.data;
       if (raw is Map && raw['result'] != null) {
         return Map<String, dynamic>.from(raw['result'] as Map);

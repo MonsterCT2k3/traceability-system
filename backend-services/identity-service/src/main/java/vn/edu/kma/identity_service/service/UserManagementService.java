@@ -45,6 +45,17 @@ public class UserManagementService {
         return users.stream().map(this::toSupplierDirectory).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<SupplierDirectoryResponse> searchManufacturersDirectory(String qRaw) {
+        assertManufacturerOrAdmin();
+        String q = qRaw == null ? "" : qRaw.trim();
+        var pageable = PageRequest.of(0, 25);
+        List<User> users = q.isEmpty()
+                ? userRepository.findByRoleOrderByFullNameAsc(UserRole.MANUFACTURER.name(), pageable).getContent()
+                : userRepository.searchUsersByRoleAndLike("%" + q + "%", UserRole.MANUFACTURER.name(), pageable);
+        return users.stream().map(this::toSupplierDirectory).collect(Collectors.toList());
+    }
+
     /**
      * NCC / NSX / ADMIN tìm đơn vị vận chuyển để gán cho đơn hàng.
      */

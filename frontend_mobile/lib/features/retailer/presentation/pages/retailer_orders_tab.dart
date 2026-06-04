@@ -54,7 +54,8 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
       final products = <_ProductItem>[];
       if (productsRaw is Map && productsRaw['result'] is List) {
         for (final e in productsRaw['result'] as List) {
-          products.add(_ProductItem.fromJson(Map<String, dynamic>.from(e as Map)));
+          products
+              .add(_ProductItem.fromJson(Map<String, dynamic>.from(e as Map)));
         }
       }
 
@@ -92,10 +93,12 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
     final out = <_DirectoryUser>[];
     for (final id in ownerIds) {
       try {
-        final res = await _api.get('/identity/api/v1/users/directory/by-id/${Uri.encodeComponent(id)}');
+        final res = await _api.get(
+            '/identity/api/v1/users/directory/by-id/${Uri.encodeComponent(id)}');
         final raw = res.data;
         if (raw is Map && raw['result'] is Map) {
-          out.add(_DirectoryUser.fromJson(Map<String, dynamic>.from(raw['result'] as Map)));
+          out.add(_DirectoryUser.fromJson(
+              Map<String, dynamic>.from(raw['result'] as Map)));
           continue;
         }
       } catch (_) {}
@@ -112,7 +115,8 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
       final list = <_TradeOrderLite>[];
       if (raw is Map && raw['result'] is List) {
         for (final e in raw['result'] as List) {
-          final one = _TradeOrderLite.fromJson(Map<String, dynamic>.from(e as Map));
+          final one =
+              _TradeOrderLite.fromJson(Map<String, dynamic>.from(e as Map));
           if (one.orderType == 'RETAILER_TO_MANUFACTURER') list.add(one);
         }
       }
@@ -174,7 +178,9 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
       final payload = {
         'orderType': 'RETAILER_TO_MANUFACTURER',
         'sellerId': sellerId,
-        'note': _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+        'note': _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
         'lines': [
           {'productId': productId, 'quantityCartons': cartons}
         ],
@@ -211,7 +217,8 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.cloud_off_outlined, size: 52, color: Colors.red.shade300),
+              Icon(Icons.cloud_off_outlined,
+                  size: 52, color: Colors.red.shade300),
               const SizedBox(height: 10),
               const Text(
                 'Không tải được dữ liệu đặt hàng',
@@ -313,7 +320,10 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
               SizedBox(width: 8),
               Text(
                 'Đơn Hàng Retailer',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -371,7 +381,8 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
                     color: Colors.blue.shade100,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.add_shopping_cart, color: Colors.blue.shade800),
+                  child: Icon(Icons.add_shopping_cart,
+                      color: Colors.blue.shade800),
                 ),
                 const SizedBox(width: 10),
                 const Text(
@@ -411,7 +422,8 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
                   _selectedProductId = null;
                 });
               },
-              validator: (v) => (v == null || v.isEmpty) ? 'Chọn nhà sản xuất' : null,
+              validator: (v) =>
+                  (v == null || v.isEmpty) ? 'Chọn nhà sản xuất' : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
@@ -436,9 +448,11 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
               onChanged: _selectedManufacturerId == null
                   ? null
                   : (v) => setState(() => _selectedProductId = v),
-              validator: (v) => (v == null || v.isEmpty) ? 'Chọn sản phẩm' : null,
+              validator: (v) =>
+                  (v == null || v.isEmpty) ? 'Chọn sản phẩm' : null,
             ),
-            if (_selectedManufacturerId != null && filteredProducts.isEmpty) ...[
+            if (_selectedManufacturerId != null &&
+                filteredProducts.isEmpty) ...[
               const SizedBox(height: 8),
               const Text(
                 'Nhà sản xuất này chưa có sản phẩm để đặt.',
@@ -474,7 +488,8 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: _submitting ? null : _submitOrder,
                 icon: _submitting
@@ -584,7 +599,9 @@ class _RetailerOrdersTabState extends State<RetailerOrdersTab> {
   }
 
   static String _formatMoney(double value) {
-    final fixed = value == value.roundToDouble() ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
+    final fixed = value == value.roundToDouble()
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(2);
     return '$fixed đ';
   }
 }
@@ -636,7 +653,9 @@ class _ProductItem {
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Không tên',
       ownerId: json['ownerId']?.toString(),
-      price: (json['price'] is num) ? (json['price'] as num).toDouble() : double.tryParse('${json['price']}'),
+      price: (json['price'] is num)
+          ? (json['price'] as num).toDouble()
+          : double.tryParse('${json['price']}'),
     );
   }
 }
@@ -665,7 +684,9 @@ class _TradeOrderLite {
   factory _TradeOrderLite.fromJson(Map<String, dynamic> json) {
     final lines = json['lines'];
     Map<String, dynamic>? firstLine;
-    if (lines is List && lines.isNotEmpty) firstLine = Map<String, dynamic>.from(lines.first as Map);
+    if (lines is List && lines.isNotEmpty) {
+      firstLine = Map<String, dynamic>.from(lines.first as Map);
+    }
     final rawQty = firstLine?['quantityCartons'];
     return _TradeOrderLite(
       id: json['id']?.toString() ?? '',
@@ -700,9 +721,13 @@ class _SummaryPill extends StatelessWidget {
           children: [
             Text(
               value,
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
             ),
-            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            Text(label,
+                style: const TextStyle(color: Colors.white70, fontSize: 12)),
           ],
         ),
       ),
@@ -748,7 +773,8 @@ class _OrderCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     orderCode,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 16),
                   ),
                 ),
                 _StatusBadge(label: status, color: statusColor),
@@ -759,7 +785,8 @@ class _OrderCard extends StatelessWidget {
               children: [
                 _MiniInfo(icon: Icons.inventory_2_outlined, value: product),
                 const SizedBox(width: 14),
-                _MiniInfo(icon: Icons.layers_outlined, value: '$quantity thùng'),
+                _MiniInfo(
+                    icon: Icons.layers_outlined, value: '$quantity thùng'),
               ],
             ),
             const SizedBox(height: 12),
@@ -772,7 +799,9 @@ class _OrderCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     nextStep,
-                    style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
@@ -800,7 +829,8 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700),
+        style:
+            TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -818,7 +848,9 @@ class _MiniInfo extends StatelessWidget {
       children: [
         Icon(icon, size: 17, color: Colors.grey.shade600),
         const SizedBox(width: 6),
-        Text(value, style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+        Text(value,
+            style: TextStyle(
+                color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
       ],
     );
   }

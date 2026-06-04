@@ -39,7 +39,7 @@ public final class ProductPublicPathMatcher {
             return false;
         }
         return path.matches("/api/v1/products/?$")
-                || path.matches("/api/v1/products/[^/]+$")
+                || (path.matches("/api/v1/products/[^/]+$") && !path.endsWith("/products/my"))
                 || path.matches("/api/v1/products/[^/]+/qr$")
                 || path.matches("/api/v1/material-catalog/?$")
                 || path.matches("/api/v1/units/[^/]+/trace$")

@@ -2,6 +2,7 @@ package vn.edu.kma.traceability_core_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import vn.edu.kma.traceability_core_service.domain.PalletInputStatus;
 
 import java.time.LocalDateTime;
 
@@ -58,6 +59,11 @@ public class Pallet {
     private String ownerId;
 
     private String manufacturerId; // ID nhà sản xuất ban đầu (không đổi)
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private PalletInputStatus inputStatus = PalletInputStatus.AVAILABLE;
 
     /**
      * bytes32 hex dùng để gọi recordTransformedBatch + ownership-change trên chain.

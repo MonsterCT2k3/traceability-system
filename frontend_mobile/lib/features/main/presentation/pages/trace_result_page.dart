@@ -6,6 +6,8 @@ import 'package:frontend_mobile/features/main/presentation/bloc/trace/trace_stat
 import 'package:frontend_mobile/features/main/presentation/widgets/integrity_banner.dart';
 import 'package:frontend_mobile/features/main/presentation/widgets/product_info_details.dart';
 import 'package:frontend_mobile/features/main/presentation/widgets/trace_timeline.dart';
+import 'package:frontend_mobile/features/main/presentation/widgets/direct_inputs_section.dart';
+import 'package:frontend_mobile/features/review/presentation/widgets/product_reviews_section.dart';
 
 class TraceResultPage extends StatelessWidget {
   final TraceEntity? initialTrace;
@@ -55,15 +57,25 @@ class TraceResultPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IntegrityBanner(
-                  trace: trace!,
-                  isVerifying: isVerifying,
-                  verificationError: verificationError,
-                ),
+                if (trace.directTrace == null)
+                  IntegrityBanner(
+                    trace: trace,
+                    isVerifying: isVerifying,
+                    verificationError: verificationError,
+                  ),
                 ProductInfoDetails(trace: trace),
+                if (trace.productId.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  ProductReviewsSummary(productId: trace.productId),
+                ],
+                if (trace.directTrace != null) ...[
+                  const SizedBox(height: 24),
+                  DirectInputsSection(trace: trace.directTrace!),
+                ],
                 const SizedBox(height: 24),
-                const Text('Nhật ký chuỗi cung ứng',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                const Text('Hành trình sản phẩm',
+                    style:
+                        TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 TraceTimeline(trace: trace),
               ],

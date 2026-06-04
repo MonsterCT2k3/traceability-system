@@ -13,7 +13,8 @@ class TraceRemoteDataSourceImpl implements TraceRemoteDataSource {
   TraceRemoteDataSourceImpl({required this.apiClient});
 
   @override
-  Future<TraceModel> getTraceBySerial(String serial, {bool isHistory = false}) async {
+  Future<TraceModel> getTraceBySerial(String serial,
+      {bool isHistory = false}) async {
     final response = await apiClient.get(
       '/product/api/v1/units/trace/by-serial',
       queryParameters: {'serial': serial, 'isHistory': isHistory},

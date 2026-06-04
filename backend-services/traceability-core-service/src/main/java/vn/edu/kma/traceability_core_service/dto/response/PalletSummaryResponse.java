@@ -17,6 +17,10 @@ public class PalletSummaryResponse {
     private String palletName;
     private String batchNo;
     private String productId;
+    private String inputStatus;
+    private String ownerId;
+    private String manufacturerId;
+    private boolean hasInputs;
     private LocalDateTime createdAt;
 }
 

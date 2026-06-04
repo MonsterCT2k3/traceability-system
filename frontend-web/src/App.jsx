@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { message } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WebSocketProvider } from './components/providers/WebSocketProvider';
-import { clearAuthSession } from './lib/authSession';
+import { AUTH_SESSION_CHANGED_EVENT, clearAuthSession } from './lib/authSession';
 import AuthPage from './pages/common/AuthPage';
 // Import các trang sẽ tạo ở bước sau
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -66,6 +66,12 @@ const PrivateRoute = ({ element, allowedRoles }) => {
 };
 
 function App() {
+  useEffect(() => {
+    const clearUserScopedCache = () => queryClient.clear();
+    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, clearUserScopedCache);
+    return () => window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, clearUserScopedCache);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <WebSocketProvider>

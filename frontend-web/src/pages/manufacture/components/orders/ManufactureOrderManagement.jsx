@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../../lib/api';
 import PurchaseOrderTable from './PurchaseOrderTable';
 import CreatePurchaseOrderForm from './CreatePurchaseOrderForm';
+import CreateManufacturerOrderForm from './CreateManufacturerOrderForm';
 import OrderDetailDrawer from './OrderDetailDrawer';
+import { ORDER_TYPE } from '../../constants/tradeOrderConstants';
 
 const { Title, Paragraph } = Typography;
 
@@ -93,6 +95,7 @@ const ManufactureOrderManagement = () => {
           />
           <PurchaseOrderTable
             orders={orders}
+            orderTypes={[ORDER_TYPE.MANUFACTURER_TO_SUPPLIER, ORDER_TYPE.MANUFACTURER_TO_MANUFACTURER]}
             loading={isLoading}
             onViewDetail={openDetail}
             onCancel={(id) => cancelMutation.mutate(id)}
@@ -103,10 +106,21 @@ const ManufactureOrderManagement = () => {
     },
     {
       key: 'create',
-      label: 'Tạo đơn mới',
+      label: 'Tạo đơn mua từ NCC',
       children: (
         <CreatePurchaseOrderForm
           key={createFormKey}
+          submitting={createMutation.isPending}
+          onSubmit={(payload) => createMutation.mutate(payload)}
+        />
+      ),
+    },
+    {
+      key: 'create-m2m',
+      label: 'Tạo đơn mua pallet từ NSX',
+      children: (
+        <CreateManufacturerOrderForm
+          key={`m2m-${createFormKey}`}
           submitting={createMutation.isPending}
           onSubmit={(payload) => createMutation.mutate(payload)}
         />

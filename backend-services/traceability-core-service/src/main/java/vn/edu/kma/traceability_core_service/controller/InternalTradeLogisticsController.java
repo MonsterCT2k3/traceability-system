@@ -13,6 +13,7 @@ import vn.edu.kma.traceability_core_service.repository.CartonRepository;
 import vn.edu.kma.traceability_core_service.repository.PalletRepository;
 import vn.edu.kma.traceability_core_service.repository.ProductUnitRepository;
 import vn.edu.kma.traceability_core_service.repository.RawBatchRepository;
+import vn.edu.kma.traceability_core_service.domain.PalletInputStatus;
 
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,13 @@ public class InternalTradeLogisticsController {
         if ("PALLET".equals(targetType)) {
             Pallet p = palletRepository.findById(targetId).orElseThrow();
             p.setOwnerId(newOwnerId);
+            p.setInputStatus(PalletInputStatus.AVAILABLE);
             palletRepository.save(p);
+            for (Carton carton : cartonRepository.findByPalletIdOrderByCreatedAtDesc(targetId)) {
+                carton.setOwnerId(newOwnerId);
+                cartonRepository.save(carton);
+                productUnitRepository.updateOwnerAndStatusByCartonId(carton.getId(), newOwnerId, carton.getStatus());
+            }
             batchIdHex = p.getChainBatchIdHex();
         } else if ("RAW_BATCH".equals(targetType)) {
             RawBatch r = rawBatchRepository.findById(targetId).orElseThrow();
@@ -88,6 +95,29 @@ public class InternalTradeLogisticsController {
             batchIdHex = p.getChainBatchIdHex();
         }
         return ResponseEntity.ok(ApiResponse.<String>builder().result(batchIdHex).build());
+    }
+
+    @PostMapping("/pallet/{id}/input-status")
+    @Transactional
+    public ResponseEntity<ApiResponse<Pallet>> updatePalletInputStatus(
+            @PathVariable String id,
+            @RequestParam String ownerId,
+            @RequestParam String status
+    ) {
+        Pallet pallet = palletRepository.findByIdForUpdate(id).orElseThrow();
+        if (!ownerId.equals(pallet.getOwnerId())) {
+            throw new RuntimeException("Pallet không thuộc owner được yêu cầu");
+        }
+        PalletInputStatus current = pallet.getInputStatus() == null ? PalletInputStatus.AVAILABLE : pallet.getInputStatus();
+        PalletInputStatus requested = PalletInputStatus.valueOf(status.trim().toUpperCase());
+        boolean validTransition = (current == PalletInputStatus.AVAILABLE && requested == PalletInputStatus.RESERVED)
+                || (current == PalletInputStatus.RESERVED && requested == PalletInputStatus.AVAILABLE)
+                || (current == PalletInputStatus.AVAILABLE && requested == PalletInputStatus.AVAILABLE);
+        if (!validTransition) {
+            throw new RuntimeException("Không thể chuyển inputStatus từ " + current + " sang " + requested);
+        }
+        pallet.setInputStatus(requested);
+        return ResponseEntity.ok(ApiResponse.<Pallet>builder().result(palletRepository.save(pallet)).build());
     }
 
     @GetMapping("/trade/check-inventory")

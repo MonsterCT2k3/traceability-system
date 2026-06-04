@@ -8,11 +8,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import vn.edu.kma.traceability_core_service.domain.PalletInputStatus;
+import vn.edu.kma.traceability_core_service.domain.PalletInputType;
 import vn.edu.kma.traceability_core_service.entity.Pallet;
+import vn.edu.kma.traceability_core_service.entity.PalletInput;
 import vn.edu.kma.traceability_core_service.entity.RawBatch;
+import vn.edu.kma.traceability_core_service.repository.PalletInputRepository;
 import vn.edu.kma.traceability_core_service.repository.PalletRepository;
 import vn.edu.kma.traceability_core_service.repository.RawBatchRepository;
 import vn.edu.kma.traceability_core_service.event.BlockchainReplyEvent;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -21,6 +27,7 @@ public class BlockchainReplyListener {
 
     private final RawBatchRepository rawBatchRepository;
     private final PalletRepository palletRepository;
+    private final PalletInputRepository palletInputRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
@@ -58,6 +65,7 @@ public class BlockchainReplyListener {
                             palletRepository.save(p);
                         } else {
                             log.error("PALLET {} blockchain error: {}. Xóa khỏi DB (Compensation)", entityId, errorMsg);
+                            restoreConsumedInputPallets(entityId);
                             palletRepository.delete(p);
                         }
                         notifyUser(p.getOwnerId(), "PALLET", entityId, success, txHash, errorMsg);
@@ -70,6 +78,22 @@ public class BlockchainReplyListener {
         } catch (Exception e) {
             log.error("Error processing blockchain reply", e);
         }
+    }
+
+    private void restoreConsumedInputPallets(String outputPalletId) {
+        List<PalletInput> inputs = palletInputRepository.findByOutputPalletIdOrderByCreatedAtAsc(outputPalletId);
+        for (PalletInput input : inputs) {
+            if (input.getInputType() != PalletInputType.PALLET) continue;
+
+            palletRepository.findById(input.getInputId()).ifPresent(inputPallet -> {
+                if (inputPallet.getInputStatus() == PalletInputStatus.CONSUMED) {
+                    inputPallet.setInputStatus(PalletInputStatus.AVAILABLE);
+                    palletRepository.save(inputPallet);
+                }
+            });
+        }
+        palletInputRepository.deleteAll(inputs);
+        palletInputRepository.flush();
     }
 
     private void notifyUser(String userId, String type, String entityId, boolean success, String txHash, String errorMsg) {

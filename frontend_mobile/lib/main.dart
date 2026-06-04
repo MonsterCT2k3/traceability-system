@@ -59,7 +59,8 @@ class MyApp extends StatelessWidget {
           },
           builder: (context, state) {
             if (state is AuthLoading || state is AuthInitial) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()));
             }
             if (state is AuthAuthenticated) {
               if (_isTransporterRole(state.user.role)) {

@@ -111,7 +111,12 @@ public class PalletPackingServiceImpl implements PalletPackingService {
             }
             ProductUnitGenerateResponse gen = productUnitService.generateUnits(carton.getId(), greq, tokenHeader);
             List<PackingUnitSerialItem> unitSerialItems = gen.getUnits().stream()
-                    .map(u -> PackingUnitSerialItem.builder().unitSerial(u.getUnitSerial()).build())
+                    .map(u -> PackingUnitSerialItem.builder()
+                            .unitId(u.getUnitId())
+                            .unitSerial(u.getUnitSerial())
+                            .traceQrPayload(u.getTraceQrPayload())
+                            .claimToken(u.getClaimToken())
+                            .build())
                     .toList();
 
             totalUnits += unitSerialItems.size();

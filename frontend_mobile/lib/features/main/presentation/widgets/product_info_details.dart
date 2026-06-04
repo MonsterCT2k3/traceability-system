@@ -31,17 +31,20 @@ class ProductInfoDetails extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
-                  child: trace.productImageUrl != null && trace.productImageUrl!.isNotEmpty
+                  child: trace.productImageUrl != null &&
+                          trace.productImageUrl!.isNotEmpty
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.network(
                             trace.productImageUrl!,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.inventory_2_outlined, size: 40, color: Colors.grey),
+                                const Icon(Icons.inventory_2_outlined,
+                                    size: 40, color: Colors.grey),
                           ),
                         )
-                      : const Icon(Icons.inventory_2_outlined, size: 40, color: Colors.grey),
+                      : const Icon(Icons.inventory_2_outlined,
+                          size: 40, color: Colors.grey),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -50,11 +53,13 @@ class ProductInfoDetails extends StatelessWidget {
                     children: [
                       Text(
                         trace.productName,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(20),
@@ -62,11 +67,15 @@ class ProductInfoDetails extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.remove_red_eye, size: 14, color: Colors.blue.shade700),
+                            Icon(Icons.remove_red_eye,
+                                size: 14, color: Colors.blue.shade700),
                             const SizedBox(width: 4),
                             Text(
                               '${trace.scanCount} lượt quét',
-                              style: TextStyle(fontSize: 12, color: Colors.blue.shade700, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue.shade700,
+                                  fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -89,11 +98,20 @@ class ProductInfoDetails extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text('SERI SẢN PHẨM', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.2)),
+                  const Text('SERI SẢN PHẨM',
+                      style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          letterSpacing: 1.2)),
                   const SizedBox(height: 8),
                   Text(
                     trace.unitSerial,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, letterSpacing: 2, color: Colors.black87),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                        letterSpacing: 2,
+                        color: Colors.black87),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -106,12 +124,16 @@ class ProductInfoDetails extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.security, size: 20, color: Colors.green.shade600),
+                        Icon(Icons.security,
+                            size: 20, color: Colors.green.shade600),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             'Quý khách vui lòng kiểm tra và so sánh số Seri này với số seri trên tờ tiền (hoặc tem) đính kèm để xác thực hàng chính hãng.',
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade800, height: 1.4),
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade800,
+                                height: 1.4),
                           ),
                         ),
                       ],
@@ -128,7 +150,9 @@ class ProductInfoDetails extends StatelessWidget {
             _buildDetailRow('Hạn sử dụng', trace.palletExpiryAt ?? '—'),
             if ((trace.productDescription ?? '').trim().isNotEmpty) ...[
               const SizedBox(height: 8),
-              const Text('Mô tả:', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+              const Text('Mô tả:',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600, color: Colors.black87)),
               const SizedBox(height: 4),
               Text(
                 trace.productDescription!.trim(),
@@ -141,7 +165,8 @@ class ProductInfoDetails extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {bool isHighlight = false}) {
+  Widget _buildDetailRow(String label, String value,
+      {bool isHighlight = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -171,4 +196,3 @@ class ProductInfoDetails extends StatelessWidget {
     );
   }
 }
-

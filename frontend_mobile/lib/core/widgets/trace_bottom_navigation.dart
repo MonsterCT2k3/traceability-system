@@ -29,7 +29,8 @@ class TraceBottomNavigation extends StatelessWidget {
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(14, 0, 14, 12),
       child: Container(
-        padding: const EdgeInsets.all(7),
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFF103B4B), Color(0xFF075F58)],
@@ -48,7 +49,7 @@ class TraceBottomNavigation extends StatelessWidget {
         child: Row(
           children: [
             for (var index = 0; index < items.length; index++) ...[
-              if (index > 0) const SizedBox(width: 5),
+              if (index > 0) const SizedBox(width: 2),
               Expanded(
                 child: _NavigationItem(
                   item: items[index],
@@ -90,8 +91,8 @@ class _NavigationItem extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(19),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 11),
-            child: Row(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 7),
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 AnimatedSwitcher(
@@ -100,21 +101,18 @@ class _NavigationItem extends StatelessWidget {
                     selected ? item.selectedIcon : item.icon,
                     key: ValueKey(selected),
                     color: selected ? const Color(0xFF087B69) : Colors.white70,
-                    size: 21,
+                    size: 23,
                   ),
                 ),
-                const SizedBox(width: 7),
-                Flexible(
-                  child: Text(
-                    item.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      color:
-                          selected ? const Color(0xFF103B4B) : Colors.white70,
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    color: selected ? const Color(0xFF103B4B) : Colors.white70,
                   ),
                 ),
               ],

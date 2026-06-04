@@ -6,7 +6,8 @@ class BanknoteBarcodeScanPage extends StatefulWidget {
   const BanknoteBarcodeScanPage({super.key});
 
   @override
-  State<BanknoteBarcodeScanPage> createState() => _BanknoteBarcodeScanPageState();
+  State<BanknoteBarcodeScanPage> createState() =>
+      _BanknoteBarcodeScanPageState();
 }
 
 class _BanknoteBarcodeScanPageState extends State<BanknoteBarcodeScanPage> {

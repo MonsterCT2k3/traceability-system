@@ -59,6 +59,15 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public List<Product> getMyProducts(String token) {
+        try {
+            return productRepository.findAllByOwnerIdOrderByNameAsc(extractUserIdFromToken(token));
+        } catch (Exception e) {
+            throw new RuntimeException("Loi khi lay catalog cua nha san xuat: " + e.getMessage());
+        }
+    }
+
+    @Override
     public Product getProductById(String id) {
         return productRepository.findById(id).orElseThrow(() -> new RuntimeException("Mặt hàng catalog không tồn tại"));
     }

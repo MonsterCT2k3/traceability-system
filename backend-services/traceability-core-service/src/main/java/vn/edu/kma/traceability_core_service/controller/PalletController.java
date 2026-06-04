@@ -47,6 +47,15 @@ public class PalletController {
         }
     }
 
+    @GetMapping("/pallets/by-owner/{ownerId}")
+    @PreAuthorize("hasAnyRole('MANUFACTURER','ADMIN')")
+    public ResponseEntity<ApiResponse<List<PalletSummaryResponse>>> getPalletsByOwner(@PathVariable String ownerId) {
+        return ResponseEntity.ok(ApiResponse.<List<PalletSummaryResponse>>builder()
+                .code(200)
+                .result(palletService.getPalletsByOwner(ownerId))
+                .build());
+    }
+
     /**
      * Anchor transformed-batch lên chain.
      * Lưu Pallet vào DB và cập nhật Product.chainBatchIdHex (để transfer hiện tại vẫn hoạt động).

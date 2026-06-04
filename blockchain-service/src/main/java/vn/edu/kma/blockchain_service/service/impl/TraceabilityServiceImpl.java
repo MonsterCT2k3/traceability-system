@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
+import org.web3j.crypto.Hash;
+import org.web3j.utils.Numeric;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.RawTransactionManager;
@@ -16,6 +18,8 @@ import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
 import vn.edu.kma.blockchain_service.dto.response.BatchRecordResponse;
 import vn.edu.kma.blockchain_service.dto.response.TransformedBatchRecordResponse;
 import vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse;
+import vn.edu.kma.blockchain_service.dto.request.VerifyTransformedDirectRequest;
+import vn.edu.kma.blockchain_service.dto.response.VerifyTransformedDirectResponse;
 import vn.edu.kma.blockchain_service.service.TraceabilityService;
 
 import java.math.BigInteger;
@@ -23,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.io.ByteArrayOutputStream;
+import java.util.Comparator;
 
 @Service
 @RequiredArgsConstructor
@@ -111,7 +117,7 @@ public class TraceabilityServiceImpl implements TraceabilityService {
         log.info("recordTransformedBatch: batchId={}, dataHash={}, parents={}", batchIdHex, dataHashHex, parentHashesHex);
         byte[] batchIdBytes = hexToBytes32(batchIdHex, "batchIdHex");
         byte[] dataHashBytes = hexToBytes32(dataHashHex, "dataHashHex");
-        List<String> parents = parentHashesHex != null ? parentHashesHex : Collections.emptyList();
+        List<String> parents = normalizeAndSortHexes(parentHashesHex);
         List<byte[]> parentBytes = new ArrayList<>(parents.size());
         for (int i = 0; i < parents.size(); i++) {
             parentBytes.add(hexToBytes32(parents.get(i), "parentHashesHex[" + i + "]"));
@@ -174,6 +180,27 @@ public class TraceabilityServiceImpl implements TraceabilityService {
     }
 
     @Override
+    public VerifyTransformedDirectResponse verifyTransformedDirect(VerifyTransformedDirectRequest request) throws Exception {
+        if (request == null) {
+            throw new IllegalArgumentException("request must not be null");
+        }
+        byte[] batchIdBytes = hexToBytes32(request.getBatchIdHex(), "batchIdHex");
+        byte[] expectedDataHash = hexToBytes32(request.getDataHashHex(), "dataHashHex");
+        var record = readContract.getTransformedBatchRecord(batchIdBytes).send();
+
+        String onChainDataHash = bytes32ToHex(record.component1());
+        String onChainParentRoot = bytes32ToHex(record.component2());
+        String calculatedParentRoot = calculateParentRootHex(request.getParentBatchIdHexes());
+
+        return VerifyTransformedDirectResponse.builder()
+                .dataHashMatch(onChainDataHash.equalsIgnoreCase(bytes32ToHex(expectedDataHash)))
+                .parentRootMatch(onChainParentRoot.equalsIgnoreCase(calculatedParentRoot))
+                .onChainParentRootHex(onChainParentRoot)
+                .calculatedParentRootHex(calculatedParentRoot)
+                .build();
+    }
+
+    @Override
     public BatchRecordResponse getBatchRecord(String batchIdHex) throws Exception {
         var tuple = readContract.getBatchRecord(hexToBytes32(batchIdHex, "batchIdHex")).send();
         return BatchRecordResponse.builder()
@@ -229,6 +256,31 @@ public class TraceabilityServiceImpl implements TraceabilityService {
             bytes[i] = (byte) Integer.parseInt(normalized.substring(index, index + 2), 16);
         }
         return bytes;
+    }
+
+    private List<String> normalizeAndSortHexes(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> normalized = new ArrayList<>(values.size());
+        for (int i = 0; i < values.size(); i++) {
+            normalized.add(bytes32ToHex(hexToBytes32(values.get(i), "parentBatchIdHexes[" + i + "]")));
+        }
+        normalized.sort(Comparator.comparing(String::toLowerCase));
+        return normalized;
+    }
+
+    private String calculateParentRootHex(List<String> parentHexes) {
+        List<String> parents = normalizeAndSortHexes(parentHexes);
+        ByteArrayOutputStream packed = new ByteArrayOutputStream();
+        if (parents.isEmpty()) {
+            packed.writeBytes(new byte[32]);
+        } else {
+            for (String parent : parents) {
+                packed.writeBytes(hexToBytes32(parent, "parentBatchIdHex"));
+            }
+        }
+        return Numeric.toHexString(Hash.sha3(packed.toByteArray()));
     }
 
     private void requireNonBlank(String value, String fieldName) {

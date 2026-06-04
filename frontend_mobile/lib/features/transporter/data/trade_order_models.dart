@@ -29,7 +29,8 @@ class TradeOrderDto {
     List<TradeOrderLineDto> parsed = [];
     if (rawLines is List) {
       parsed = rawLines
-          .map((e) => TradeOrderLineDto.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map((e) =>
+              TradeOrderLineDto.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
     }
     return TradeOrderDto(
@@ -50,6 +51,7 @@ class TradeOrderDto {
 class TradeOrderLineDto {
   final int? lineIndex;
   final String? targetRawBatchId;
+  final String? targetPalletId;
   final String? productId;
   final String? quantityRequested;
   final String? quantityCartons;
@@ -58,6 +60,7 @@ class TradeOrderLineDto {
   TradeOrderLineDto({
     this.lineIndex,
     this.targetRawBatchId,
+    this.targetPalletId,
     this.productId,
     this.quantityRequested,
     this.quantityCartons,
@@ -66,8 +69,11 @@ class TradeOrderLineDto {
 
   factory TradeOrderLineDto.fromJson(Map<String, dynamic> json) {
     return TradeOrderLineDto(
-      lineIndex: json['lineIndex'] is int ? json['lineIndex'] as int : int.tryParse('${json['lineIndex']}'),
+      lineIndex: json['lineIndex'] is int
+          ? json['lineIndex'] as int
+          : int.tryParse('${json['lineIndex']}'),
       targetRawBatchId: json['targetRawBatchId']?.toString(),
+      targetPalletId: json['targetPalletId']?.toString(),
       productId: json['productId']?.toString(),
       quantityRequested: json['quantityRequested']?.toString(),
       quantityCartons: json['quantityCartons']?.toString(),

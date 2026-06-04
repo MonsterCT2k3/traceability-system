@@ -24,7 +24,8 @@ class ScanHistoryRepositoryImpl implements ScanHistoryRepository {
   }
 
   @override
-  Future<Either<Failure, List<ScanHistoryEntity>>> getScanHistory(int page, int size) async {
+  Future<Either<Failure, List<ScanHistoryEntity>>> getScanHistory(
+      int page, int size) async {
     try {
       final models = await remoteDataSource.getScanHistory(page, size);
       return Right(models);

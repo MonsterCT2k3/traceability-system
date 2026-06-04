@@ -25,7 +25,7 @@ const ManufactureProductionManagement = () => {
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ['manufacturerProducts'],
     queryFn: async () => {
-      const res = await api.get('/catalog/api/v1/products');
+      const res = await api.get('/catalog/api/v1/products/my');
       return res.data?.result ?? [];
     },
   });
@@ -34,6 +34,14 @@ const ManufactureProductionManagement = () => {
     queryKey: ['manufacturerMyRawBatches'],
     queryFn: async () => {
       const res = await api.get('/product/api/v1/raw-batches/my');
+      return res.data?.result ?? [];
+    },
+  });
+
+  const { data: myPallets = [], isLoading: palletLoading } = useQuery({
+    queryKey: ['manufacturerMyPallets'],
+    queryFn: async () => {
+      const res = await api.get('/product/api/v1/products/pallets/my');
       return res.data?.result ?? [];
     },
   });
@@ -50,13 +58,26 @@ const ManufactureProductionManagement = () => {
   const rawOptions = useMemo(
     () =>
       (myRawBatches || [])
-        .filter((rb) => rb?.batchIdHex)
+        .filter((rb) => rb?.id && rb?.batchIdHex)
         .map((rb) => ({
-          value: rb.batchIdHex,
+          value: rb.id,
           label: `${rb.rawBatchCode} · ${rb.materialName} · ${rb.quantity} ${rb.unit}`,
         })),
     [myRawBatches],
   );
+
+  const inputOptions = useMemo(() => [
+    {
+      label: 'Lo nguyen lieu',
+      options: rawOptions.map((option) => ({ ...option, value: `RAW_BATCH:${option.value}` })),
+    },
+    {
+      label: 'Pallet co the dung lam dau vao',
+      options: (myPallets || [])
+        .filter((p) => p.inputStatus === 'AVAILABLE')
+        .map((p) => ({ value: `PALLET:${p.id}`, label: `${p.palletCode} - ${p.palletName}` })),
+    },
+  ], [rawOptions, myPallets]);
 
   const createBatchMutation = useMutation({
     mutationFn: async (values) => {
@@ -71,7 +92,10 @@ const ManufactureProductionManagement = () => {
         processingMethod: values.processingMethod?.trim(),
         location: values.location?.trim(),
         note: values.note?.trim() || '',
-        parentRawBatchIdHexes: values.parentRawBatchIdHexes || [],
+        inputs: (values.inputs || []).map((value) => {
+          const separator = value.indexOf(':');
+          return { type: value.slice(0, separator), id: value.slice(separator + 1) };
+        }),
       };
       return api.post(`/product/api/v1/products/${values.productId}/pallets/anchor`, payload);
     },
@@ -141,12 +165,12 @@ const ManufactureProductionManagement = () => {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item name="parentRawBatchIdHexes" label="Raw batch nguồn (thuộc sở hữu của bạn)" rules={[{ required: true, message: 'Chọn ít nhất 1 raw batch' }]}>
+              <Form.Item name="inputs" label="Đầu vào sản xuất thuộc sở hữu của bạn" rules={[{ required: true, message: 'Chọn ít nhất 1 đầu vào' }]}>
                 <Select
                   mode="multiple"
-                  placeholder="Chọn raw batch để làm parent"
-                  loading={rawLoading}
-                  options={rawOptions}
+                  placeholder="Chọn lô nguyên liệu hoặc pallet"
+                  loading={rawLoading || palletLoading}
+                  options={inputOptions}
                   optionFilterProp="label"
                 />
               </Form.Item>

@@ -16,45 +16,51 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<UpdateAvatarEvent>(_onUpdateAvatar);
   }
 
-  Future<void> _onCheckAuthStatus(CheckAuthStatusEvent event, Emitter<AuthState> emit) async {
+  Future<void> _onCheckAuthStatus(
+      CheckAuthStatusEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     final authRepository = sl<AuthRepository>();
     final result = await authRepository.checkAuthStatus();
-    
+
     result.fold(
       (failure) => emit(AuthUnauthenticated()),
       (user) => emit(AuthAuthenticated(user: user)),
     );
   }
 
-  Future<void> _onUpdateProfile(UpdateProfileEvent event, Emitter<AuthState> emit) async {
+  Future<void> _onUpdateProfile(
+      UpdateProfileEvent event, Emitter<AuthState> emit) async {
     if (state is AuthAuthenticated) {
       final currentUser = (state as AuthAuthenticated).user;
       emit(AuthLoading());
       final authRepository = sl<AuthRepository>();
-      final result = await authRepository.updateProfile(event.fullName, event.email, event.phone, event.description, event.location);
-      
+      final result = await authRepository.updateProfile(event.fullName,
+          event.email, event.phone, event.description, event.location);
+
       result.fold(
         (failure) {
           emit(AuthError(message: failure.message));
-          emit(AuthAuthenticated(user: currentUser)); // Revert back to old state
+          emit(
+              AuthAuthenticated(user: currentUser)); // Revert back to old state
         },
         (updatedUser) => emit(AuthAuthenticated(user: updatedUser)),
       );
     }
   }
 
-  Future<void> _onUpdateAvatar(UpdateAvatarEvent event, Emitter<AuthState> emit) async {
+  Future<void> _onUpdateAvatar(
+      UpdateAvatarEvent event, Emitter<AuthState> emit) async {
     if (state is AuthAuthenticated) {
       final currentUser = (state as AuthAuthenticated).user;
       emit(AuthLoading());
       final authRepository = sl<AuthRepository>();
       final result = await authRepository.updateAvatar(event.imageFile);
-      
+
       result.fold(
         (failure) {
           emit(AuthError(message: failure.message));
-          emit(AuthAuthenticated(user: currentUser)); // Revert back to old state
+          emit(
+              AuthAuthenticated(user: currentUser)); // Revert back to old state
         },
         (updatedUser) => emit(AuthAuthenticated(user: updatedUser)),
       );
@@ -63,8 +69,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
-    final result = await loginUseCase.call(LoginParams(username: event.username, password: event.password));
-    
+    final result = await loginUseCase
+        .call(LoginParams(username: event.username, password: event.password));
+
     result.fold(
       (failure) => emit(AuthError(message: failure.message)),
       (user) => emit(AuthAuthenticated(user: user)),

@@ -3,7 +3,7 @@ import '../../../domain/entities/trace_entity.dart';
 
 abstract class TraceState extends Equatable {
   const TraceState();
-  
+
   @override
   List<Object?> get props => [];
 }

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Card, Col, Divider, Form, Input, InputNumber, Row, Select, Space, Typography, message } from 'antd';
+import { useEffect, useState } from 'react';
+import { Alert, Button, Card, Col, Divider, Form, Input, InputNumber, Row, Select, Space, Typography, message } from 'antd';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import JSZip from 'jszip';
@@ -7,11 +7,11 @@ import api from '../../../../lib/api';
 
 const { Title, Text } = Typography;
 
-const buildLabelImage = async ({ cartonCode, unitSerial, qrDataUrl }) => {
-  if (!qrDataUrl) return null;
+const buildLabelImage = async ({ cartonCode, unitSerial, traceQrDataUrl, claimQrDataUrl }) => {
+  if (!traceQrDataUrl || !claimQrDataUrl) return null;
   const canvas = document.createElement('canvas');
-  canvas.width = 720;
-  canvas.height = 420;
+  canvas.width = 960;
+  canvas.height = 500;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
@@ -23,22 +23,32 @@ const buildLabelImage = async ({ cartonCode, unitSerial, qrDataUrl }) => {
 
   ctx.fillStyle = '#111111';
   ctx.font = 'bold 30px Arial';
-  ctx.fillText('TEM TRUY XUAT SAN PHAM', 24, 52);
+  ctx.fillText('TEM TRUY XUAT VA DANH GIA SAN PHAM', 24, 52);
 
   ctx.font = 'bold 26px Arial';
   ctx.fillText(`Thung: ${cartonCode}`, 24, 110);
   ctx.fillText(`Seri: ${unitSerial}`, 24, 162);
   ctx.font = '20px Arial';
   ctx.fillStyle = '#444';
-  ctx.fillText('QR nay ung voi dung seri in ben tren', 24, 206);
+  ctx.fillText('QR truy xuat cong khai', 82, 238);
+  ctx.fillText('QR danh gia - can phu cao', 560, 238);
 
-  const qrImg = new Image();
-  await new Promise((resolve, reject) => {
-    qrImg.onload = resolve;
-    qrImg.onerror = reject;
-    qrImg.src = qrDataUrl;
+  const loadImage = (source) => new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = source;
   });
-  ctx.drawImage(qrImg, 470, 80, 220, 220);
+  const [traceQr, claimQr] = await Promise.all([
+    loadImage(traceQrDataUrl),
+    loadImage(claimQrDataUrl),
+  ]);
+  ctx.drawImage(traceQr, 70, 250, 210, 210);
+  ctx.drawImage(claimQr, 560, 250, 210, 210);
+
+  ctx.fillStyle = '#b42318';
+  ctx.font = 'bold 18px Arial';
+  ctx.fillText('CHI MO SAU KHI MUA', 785, 350);
 
   return canvas.toDataURL('image/png');
 };
@@ -87,13 +97,24 @@ const downloadCartonLabelsZip = async ({ cartonCode, units }) => {
   }
   for (const u of units || []) {
     const unitSerial = u?.unitSerial;
-    if (!unitSerial) continue;
-    const qrDataUrl = await QRCode.toDataURL(unitSerial, {
+    const claimToken = u?.claimToken;
+    if (!unitSerial || !claimToken) continue;
+    const traceQrDataUrl = await QRCode.toDataURL(u?.traceQrPayload || unitSerial, {
       errorCorrectionLevel: 'M',
       margin: 1,
       width: 180,
     });
-    const labelDataUrl = await buildLabelImage({ cartonCode, unitSerial, qrDataUrl });
+    const claimQrDataUrl = await QRCode.toDataURL(claimToken, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 180,
+    });
+    const labelDataUrl = await buildLabelImage({
+      cartonCode,
+      unitSerial,
+      traceQrDataUrl,
+      claimQrDataUrl,
+    });
     if (!labelDataUrl) continue;
     zip.file(`label-${cartonCode}-${unitSerial}.png`, dataUrlToUint8Array(labelDataUrl));
   }
@@ -108,8 +129,11 @@ const downloadCartonLabelsZip = async ({ cartonCode, units }) => {
   URL.revokeObjectURL(url);
 };
 
-const SerialQrCard = ({ cartonCode, unitSerial }) => {
-  const [qrDataUrl, setQrDataUrl] = useState('');
+// eslint-disable-next-line react/prop-types
+const SerialQrCard = ({ cartonCode, unit }) => {
+  // eslint-disable-next-line react/prop-types
+  const { unitSerial, traceQrPayload, claimToken } = unit;
+  const [qrData, setQrData] = useState({ trace: '', claim: '' });
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -118,14 +142,17 @@ const SerialQrCard = ({ cartonCode, unitSerial }) => {
     const run = async () => {
       setLoading(true);
       try {
-        const dataUrl = await QRCode.toDataURL(unitSerial, {
-          errorCorrectionLevel: 'M',
-          margin: 1,
-          width: 180,
-        });
-        if (!cancelled) setQrDataUrl(dataUrl);
-      } catch (_) {
-        if (!cancelled) setQrDataUrl('');
+        const [trace, claim] = await Promise.all([
+          QRCode.toDataURL(traceQrPayload || unitSerial, {
+            errorCorrectionLevel: 'M', margin: 1, width: 180,
+          }),
+          QRCode.toDataURL(claimToken, {
+            errorCorrectionLevel: 'M', margin: 1, width: 180,
+          }),
+        ]);
+        if (!cancelled) setQrData({ trace, claim });
+      } catch {
+        if (!cancelled) setQrData({ trace: '', claim: '' });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -134,13 +161,18 @@ const SerialQrCard = ({ cartonCode, unitSerial }) => {
     return () => {
       cancelled = true;
     };
-  }, [unitSerial]);
+  }, [claimToken, traceQrPayload, unitSerial]);
 
   const downloadLabel = async () => {
-    if (!qrDataUrl) return;
+    if (!qrData.trace || !qrData.claim) return;
     try {
       setDownloading(true);
-      const labelDataUrl = await buildLabelImage({ cartonCode, unitSerial, qrDataUrl });
+      const labelDataUrl = await buildLabelImage({
+        cartonCode,
+        unitSerial,
+        traceQrDataUrl: qrData.trace,
+        claimQrDataUrl: qrData.claim,
+      });
       if (!labelDataUrl) return;
       const a = document.createElement('a');
       a.href = labelDataUrl;
@@ -154,16 +186,21 @@ const SerialQrCard = ({ cartonCode, unitSerial }) => {
   };
 
   return (
-    <Card size="small" style={{ width: 210 }}>
-      <div style={{ textAlign: 'center' }}>
-        {qrDataUrl ? (
-          <img
-            src={qrDataUrl}
-            alt={`QR-${unitSerial}`}
-            style={{ width: 160, height: 160, objectFit: 'contain' }}
-          />
+    <Card size="small" style={{ width: 390 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, textAlign: 'center' }}>
+        {qrData.trace && qrData.claim ? (
+          <>
+            <div>
+              <Text strong>Truy xuất</Text>
+              <img src={qrData.trace} alt={`Trace-${unitSerial}`} style={{ width: 150, height: 150, display: 'block', margin: '4px auto' }} />
+            </div>
+            <div>
+              <Text strong type="danger">Đánh giá · phủ cào</Text>
+              <img src={qrData.claim} alt={`Claim-${unitSerial}`} style={{ width: 150, height: 150, display: 'block', margin: '4px auto' }} />
+            </div>
+          </>
         ) : (
-          <div style={{ height: 160, display: 'grid', placeItems: 'center' }}>
+          <div style={{ gridColumn: '1 / -1', height: 160, display: 'grid', placeItems: 'center' }}>
             <Text type="secondary">{loading ? 'Đang tạo QR...' : 'Không tạo được QR'}</Text>
           </div>
         )}
@@ -175,8 +212,8 @@ const SerialQrCard = ({ cartonCode, unitSerial }) => {
         <Text type="secondary">{cartonCode}</Text>
       </div>
       <div style={{ marginTop: 8 }}>
-        <Button size="small" onClick={downloadLabel} disabled={!qrDataUrl || downloading}>
-          {downloading ? 'Đang tạo tem...' : 'Tải tem (thùng + seri + QR)'}
+        <Button size="small" onClick={downloadLabel} disabled={!qrData.trace || !qrData.claim || downloading}>
+          {downloading ? 'Đang tạo tem...' : 'Tải tem đôi'}
         </Button>
       </div>
     </Card>
@@ -337,6 +374,13 @@ const ManufacturePackagingManagement = () => {
           <Text>
             Pallet: <b>{packingResult.palletCode}</b> · Carton: <b>{packingResult.cartonsCreated}</b> · Unit: <b>{packingResult.unitsCreated}</b>
           </Text>
+          <Alert
+            style={{ marginTop: 14 }}
+            type="warning"
+            showIcon
+            message="Hãy tải và in tem đôi ngay"
+            description="QR đánh giá bí mật chỉ được trả về trong lần đóng gói này. Sau khi rời màn hình, hệ thống không thể đọc lại token gốc từ cơ sở dữ liệu."
+          />
           <Divider />
           <div style={{ display: 'grid', gap: 10 }}>
             {(packingResult.cartons || []).map((c) => (
@@ -361,7 +405,7 @@ const ManufacturePackagingManagement = () => {
                     <SerialQrCard
                       key={`${c.cartonCode}-${u.unitSerial}`}
                       cartonCode={c.cartonCode}
-                      unitSerial={u.unitSerial}
+                      unit={u}
                     />
                   ))}
                 </div>

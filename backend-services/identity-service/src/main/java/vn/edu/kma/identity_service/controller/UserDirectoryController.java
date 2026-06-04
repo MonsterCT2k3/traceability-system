@@ -35,6 +35,17 @@ public class UserDirectoryController {
                 .build());
     }
 
+    @GetMapping("/manufacturers")
+    public ResponseEntity<ApiResponse<List<SupplierDirectoryResponse>>> searchManufacturers(
+            @RequestParam(value = "q", required = false) String q
+    ) {
+        return ResponseEntity.ok(ApiResponse.<List<SupplierDirectoryResponse>>builder()
+                .code(200)
+                .message("OK")
+                .result(userManagementService.searchManufacturersDirectory(q))
+                .build());
+    }
+
     @GetMapping("/transporters")
     public ResponseEntity<ApiResponse<List<SupplierDirectoryResponse>>> searchTransporters(
             @RequestParam(value = "q", required = false) String q

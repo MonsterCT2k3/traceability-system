@@ -10,6 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PackingUnitSerialItem {
+    private String unitId;
     private String unitSerial;
+    private String traceQrPayload;
+    private String claimToken;
 }
 

@@ -16,12 +16,14 @@ InputImage? inputImageFromCameraFrame(
   if (Platform.isIOS) {
     rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
   } else if (Platform.isAndroid) {
-    var rotationCompensation = _orientations[controller.value.deviceOrientation];
+    var rotationCompensation =
+        _orientations[controller.value.deviceOrientation];
     if (rotationCompensation == null) return null;
     if (camera.lensDirection == CameraLensDirection.front) {
       rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
     } else {
-      rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
+      rotationCompensation =
+          (sensorOrientation - rotationCompensation + 360) % 360;
     }
     rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
   }

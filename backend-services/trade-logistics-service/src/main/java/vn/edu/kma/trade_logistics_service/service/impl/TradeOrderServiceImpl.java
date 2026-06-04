@@ -76,6 +76,11 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                     throw new RuntimeException("Chỉ nhà sản xuất được đặt đơn nguyên liệu từ NCC");
                 }
                 validateAndBuildLinesM2S(request.getLines(), sellerId);
+            } else if (request.getOrderType() == OrderType.MANUFACTURER_TO_MANUFACTURER) {
+                if (role != UserRole.MANUFACTURER) {
+                    throw new RuntimeException("Chỉ nhà sản xuất được đặt mua pallet từ nhà sản xuất khác");
+                }
+                validateLinesM2M(request.getLines(), sellerId);
             } else if (request.getOrderType() == OrderType.RETAILER_TO_MANUFACTURER) {
                 if (role != UserRole.RETAILER) {
                     throw new RuntimeException("Chỉ retailer được đặt đơn tới NSX");
@@ -102,6 +107,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                         .order(order)
                         .lineIndex(idx++)
                         .targetRawBatchId(lr.getTargetRawBatchId())
+                        .targetPalletId(lr.getTargetPalletId())
                         .quantityRequested(trimOrNull(lr.getQuantityRequested()))
                         .unit(trimOrNull(lr.getUnit()))
                         .productId(lr.getProductId())
@@ -203,6 +209,10 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 TradeOrder saved = tradeOrderRepository.save(order);
                 reserveCartonsForRetailOrder(saved);
                 return toResponse(saved);
+            } else if (order.getOrderType() == OrderType.MANUFACTURER_TO_MANUFACTURER) {
+                reserveM2MPallets(order);
+                order.setStatus(TradeOrderStatus.ACCEPTED);
+                return toResponse(tradeOrderRepository.save(order));
             } else {
                 order.setStatus(TradeOrderStatus.ACCEPTED);
                 return toResponse(tradeOrderRepository.save(order));
@@ -228,6 +238,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 throw new RuntimeException("Đơn không ở trạng thái chờ xử lý");
             }
             order.setStatus(TradeOrderStatus.REJECTED);
+            releaseM2MPalletsIfNeeded(order);
             return toResponse(tradeOrderRepository.save(order));
         } catch (RuntimeException e) {
             throw e;
@@ -250,6 +261,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 throw new RuntimeException("Chỉ hủy được đơn đang chờ xử lý");
             }
             order.setStatus(TradeOrderStatus.CANCELLED);
+            releaseM2MPalletsIfNeeded(order);
             return toResponse(tradeOrderRepository.save(order));
         } catch (RuntimeException e) {
             throw e;
@@ -342,6 +354,10 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 order.setStatus(TradeOrderStatus.DELIVERED);
                 TradeOrder saved = tradeOrderRepository.save(order);
                 return toResponse(saved);
+            } else if (order.getOrderType() == OrderType.MANUFACTURER_TO_MANUFACTURER) {
+                finalizeM2MDelivery(order);
+                order.setStatus(TradeOrderStatus.DELIVERED);
+                return toResponse(tradeOrderRepository.save(order));
             } else if (order.getOrderType() == OrderType.RETAILER_TO_MANUFACTURER) {
                 order.setStatus(TradeOrderStatus.PROCESSING);
                 TradeOrder saved = tradeOrderRepository.save(order);
@@ -400,6 +416,71 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             order.setDeliveryChainError(null);
         }
         order.setDeliveryTxHash(lastTx);
+    }
+
+    private void validateLinesM2M(List<TradeOrderLineRequest> lines, String sellerId) {
+        Set<String> seen = new HashSet<>();
+        int index = 0;
+        for (TradeOrderLineRequest line : lines) {
+            String palletId = requireNonBlank(line.getTargetPalletId(), "Dòng " + index + ": thiếu targetPalletId");
+            if (!seen.add(palletId)) throw new RuntimeException("Không được chọn trùng pallet: " + palletId);
+            Map<String, Object> pallet = productClient.getPallet(palletId).getResult();
+            if (pallet == null) throw new RuntimeException("Pallet không tồn tại: " + palletId);
+            if (!sellerId.equals(pallet.get("ownerId"))) throw new RuntimeException("Pallet không thuộc nhà sản xuất bán");
+            if (!"AVAILABLE".equals(String.valueOf(pallet.get("inputStatus")))) {
+                throw new RuntimeException("Pallet không sẵn sàng để bán/làm input: " + palletId);
+            }
+            if (line.getTargetRawBatchId() != null || line.getProductId() != null) {
+                throw new RuntimeException("Đơn M→M chỉ sử dụng targetPalletId");
+            }
+            index++;
+        }
+    }
+
+    private void reserveM2MPallets(TradeOrder order) {
+        List<String> reserved = new ArrayList<>();
+        try {
+            for (TradeOrderLine line : order.getLines()) {
+                if (line.getTargetPalletId() != null) {
+                    productClient.updatePalletInputStatus(line.getTargetPalletId(), order.getSellerId(), "RESERVED");
+                    reserved.add(line.getTargetPalletId());
+                }
+            }
+        } catch (RuntimeException e) {
+            for (String palletId : reserved) {
+                try {
+                    productClient.updatePalletInputStatus(palletId, order.getSellerId(), "AVAILABLE");
+                } catch (Exception compensationError) {
+                    log.error("Không thể hoàn tác trạng thái pallet {} sau lỗi reserve", palletId, compensationError);
+                }
+            }
+            throw e;
+        }
+    }
+
+    private void releaseM2MPalletsIfNeeded(TradeOrder order) {
+        if (order.getOrderType() != OrderType.MANUFACTURER_TO_MANUFACTURER) return;
+        for (TradeOrderLine line : order.getLines()) {
+            if (line.getTargetPalletId() != null) {
+                productClient.updatePalletInputStatus(line.getTargetPalletId(), order.getSellerId(), "AVAILABLE");
+            }
+        }
+    }
+
+    private void finalizeM2MDelivery(TradeOrder order) {
+        String lastTx = null;
+        for (TradeOrderLine line : order.getLines()) {
+            String palletId = requireNonBlank(line.getTargetPalletId(), "Dòng đơn thiếu targetPalletId");
+            Map<String, Object> pallet = productClient.getPallet(palletId).getResult();
+            if (pallet == null || !order.getSellerId().equals(pallet.get("ownerId"))) {
+                throw new RuntimeException("Pallet không còn thuộc người bán: " + palletId);
+            }
+            String batchIdHex = productClient.transferOwnership("PALLET", palletId, order.getBuyerId()).getResult();
+            lastTx = callOwnershipChange(batchIdHex, order.getSellerId(), order.getBuyerId());
+        }
+        order.setDeliveryTxHash(lastTx);
+        order.setDeliveryChainStatus(lastTx == null ? "PARTIAL_OR_FAILED" : "OK");
+        order.setDeliveryChainError(lastTx == null ? "Không ghi được ownership event" : null);
     }
 
     private void requestRetailDelivery(TradeOrder order) {
@@ -533,6 +614,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                         .id(l.getId())
                         .lineIndex(l.getLineIndex())
                         .targetRawBatchId(l.getTargetRawBatchId())
+                        .targetPalletId(l.getTargetPalletId())
                         .quantityRequested(l.getQuantityRequested())
                         .unit(l.getUnit())
                         .productId(l.getProductId())

@@ -13,7 +13,9 @@ class ScanHistoryModel extends ScanHistoryEntity {
     return ScanHistoryModel(
       id: json['id'] ?? '',
       unitSerial: json['unitSerial'] ?? '',
-      scannedAt: json['scannedAt'] != null ? DateTime.parse(json['scannedAt']) : DateTime.now(),
+      scannedAt: json['scannedAt'] != null
+          ? DateTime.parse(json['scannedAt'])
+          : DateTime.now(),
       productName: json['productName'],
       productImage: json['productImage'],
     );

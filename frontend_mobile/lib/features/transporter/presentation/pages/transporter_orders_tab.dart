@@ -140,6 +140,8 @@ class _TransporterOrdersViewState extends State<TransporterOrdersView> {
         return 'Nguyên liệu';
       case 'RETAILER_TO_MANUFACTURER':
         return 'Thành phẩm';
+      case 'MANUFACTURER_TO_MANUFACTURER':
+        return 'Pallet đầu vào';
       default:
         return type;
     }
@@ -535,11 +537,13 @@ class _TransporterOrdersViewState extends State<TransporterOrdersView> {
               const SizedBox(height: 14),
               Row(
                 children: [
-                  _MiniInfo(
-                    icon: Icons.inventory_2_outlined,
-                    value: _typeLabel(order.orderType),
+                  Expanded(
+                    child: _MiniInfo(
+                      icon: Icons.inventory_2_outlined,
+                      value: _typeLabel(order.orderType),
+                    ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 10),
                   _MiniInfo(
                     icon: Icons.layers_outlined,
                     value: '${order.lines.length} mặt hàng',
@@ -717,6 +721,8 @@ class _MiniInfo extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
         ),
       ],

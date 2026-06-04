@@ -12,6 +12,7 @@ const PurchaseOrderTable = ({
   onViewDetail,
   onCancel,
   cancellingId,
+  orderTypes = [ORDER_TYPE.MANUFACTURER_TO_SUPPLIER],
 }) => {
   const columns = [
     {
@@ -73,7 +74,7 @@ const PurchaseOrderTable = ({
     },
   ];
 
-  const data = (orders || []).filter((o) => o.orderType === ORDER_TYPE.MANUFACTURER_TO_SUPPLIER);
+  const data = (orders || []).filter((o) => orderTypes.includes(o.orderType));
 
   return (
     <Table

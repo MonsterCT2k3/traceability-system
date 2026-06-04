@@ -16,6 +16,9 @@ public class TradeOrderLineRequest {
     private String quantityRequested;
     private String unit;
 
+    /** MANUFACTURER_TO_MANUFACTURER */
+    private String targetPalletId;
+
     /** RETAILER_TO_MANUFACTURER */
     private String productId;
     private Integer quantityCartons;

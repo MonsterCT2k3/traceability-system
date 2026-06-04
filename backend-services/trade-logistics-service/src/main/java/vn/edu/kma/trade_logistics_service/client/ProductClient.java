@@ -30,6 +30,13 @@ public interface ProductClient {
             @RequestParam("newOwnerId") String newOwnerId
     );
 
+    @PostMapping("/api/v1/internal/products/pallet/{id}/input-status")
+    ApiResponse<Map<String, Object>> updatePalletInputStatus(
+            @PathVariable("id") String id,
+            @RequestParam("ownerId") String ownerId,
+            @RequestParam("status") String status
+    );
+
     @PostMapping("/api/v1/internal/products/trade/ship-cartons")
     ApiResponse<List<Map<String, Object>>> shipCartons(
             @RequestParam("sellerId") String sellerId,

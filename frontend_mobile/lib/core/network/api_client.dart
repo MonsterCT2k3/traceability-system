@@ -7,9 +7,10 @@ class ApiClient {
 
   ApiClient({required this.dio, required this.secureStorage}) {
     dio.options.baseUrl =
-        'https://79b6-2405-4802-4dd-3480-e80d-c736-2de4-1649.ngrok-free.app';
+        'https://e40c-2405-4802-4dd-3480-950-1896-a463-74c7.ngrok-free.app';
     dio.options.connectTimeout = const Duration(seconds: 10);
-    dio.options.receiveTimeout = const Duration(seconds: 10);
+    dio.options.sendTimeout = const Duration(seconds: 60);
+    dio.options.receiveTimeout = const Duration(seconds: 60);
 
     dio.interceptors
         .add(InterceptorsWrapper(onRequest: (options, handler) async {
@@ -69,5 +70,9 @@ class ApiClient {
 
   Future<Response> post(String path, {dynamic data}) async {
     return await dio.post(path, data: data);
+  }
+
+  Future<Response> put(String path, {dynamic data}) async {
+    return await dio.put(path, data: data);
   }
 }

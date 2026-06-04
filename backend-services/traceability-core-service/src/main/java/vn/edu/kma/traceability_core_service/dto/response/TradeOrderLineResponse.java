@@ -13,6 +13,7 @@ public class TradeOrderLineResponse {
     private String id;
     private Integer lineIndex;
     private String targetRawBatchId;
+    private String targetPalletId;
     private String quantityRequested;
     private String unit;
     private String productId;

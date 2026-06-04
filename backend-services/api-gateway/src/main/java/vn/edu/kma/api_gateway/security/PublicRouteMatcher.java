@@ -60,13 +60,17 @@ public final class PublicRouteMatcher {
             return true;
         }
         return path.matches(".*/api/v1/products/?$")
-                || path.matches(".*/api/v1/products/[^/]+$")
+                || (path.matches(".*/api/v1/products/[^/]+$") && !path.endsWith("/products/my"))
                 || path.matches(".*/api/v1/products/[^/]+/qr$")
+                || path.matches(".*/api/v1/products/[^/]+/reviews$")
+                || path.matches(".*/api/v1/products/[^/]+/review-summary$")
                 || path.matches(".*/api/v1/material-catalog/?$")
                 || path.matches(".*/api/v1/units/[^/]+/trace$")
                 || path.matches(".*/api/v1/units/[^/]+/qr$")
                 || path.matches(".*/api/v1/units/trace/by-serial$")
                 || path.matches(".*/api/v1/units/trace/by-serial/verify$")
+                || path.matches(".*/api/v1/pallets/[^/]+/trace-direct$")
+                || path.matches(".*/api/v1/pallets/[^/]+/verify-direct$")
                 || path.contains("/api/v1/histories/product/")
                 || path.matches(".*/api/v1/blockchain/batch/[^/]+(/exists)?$")
                 || path.matches(".*/api/v1/blockchain/transformed-batch/[^/]+(/exists)?$");

@@ -38,5 +38,8 @@ public class ProductUnitPublicTraceResponse {
 
     /** Cờ tổng thể: true nếu toàn bộ lịch sử (có hash) khớp với blockchain */
     private Boolean isDataIntact;
+
+    /** Lô thành phẩm và các input trực tiếp, tải một cấp để khách hàng có thể mở sâu theo nhu cầu. */
+    private DirectTraceResponse directTrace;
 }
 

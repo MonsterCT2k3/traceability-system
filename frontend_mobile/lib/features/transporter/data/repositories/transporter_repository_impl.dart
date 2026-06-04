@@ -32,10 +32,11 @@ class TransporterRepositoryImpl implements TransporterRepository {
     if (userId.isEmpty) return '—';
     final u = await remoteDataSource.getUserDirectory(userId);
     if (u == null) return userId;
-    
+
     final fullName = u['fullName']?.toString().trim() ?? '';
     final username = u['username']?.toString().trim() ?? '';
-    final name = fullName.isNotEmpty ? fullName : (username.isNotEmpty ? username : '');
+    final name =
+        fullName.isNotEmpty ? fullName : (username.isNotEmpty ? username : '');
     final id = u['id']?.toString() ?? userId;
     if (name.isNotEmpty) return '$name ($id)';
     return '($id)';

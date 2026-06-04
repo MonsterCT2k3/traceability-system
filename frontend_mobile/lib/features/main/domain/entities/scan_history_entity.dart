@@ -16,5 +16,6 @@ class ScanHistoryEntity extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, unitSerial, scannedAt, productName, productImage];
+  List<Object?> get props =>
+      [id, unitSerial, scannedAt, productName, productImage];
 }

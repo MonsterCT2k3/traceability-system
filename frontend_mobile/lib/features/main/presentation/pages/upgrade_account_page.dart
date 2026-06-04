@@ -66,13 +66,16 @@ class _UpgradeAccountPageState extends State<UpgradeAccountPage> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedRole == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn vai trò muốn nâng cấp'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Vui lòng chọn vai trò muốn nâng cấp'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
 
     setState(() => _submitting = true);
-    final result = await _repo.createRoleRequest(_selectedRole!, _descriptionController.text.trim());
+    final result = await _repo.createRoleRequest(
+        _selectedRole!, _descriptionController.text.trim());
     if (!mounted) return;
     setState(() => _submitting = false);
 
@@ -86,7 +89,9 @@ class _UpgradeAccountPageState extends State<UpgradeAccountPage> {
         _descriptionController.clear();
         setState(() => _selectedRole = null);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã gửi đơn thành công!'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('Đã gửi đơn thành công!'),
+              backgroundColor: Colors.green),
         );
         _loadRequests();
       },
@@ -152,19 +157,24 @@ class _UpgradeAccountPageState extends State<UpgradeAccountPage> {
                   children: [
                     Text(
                       'Gửi đơn đăng ký vai trò mới. Admin sẽ xem xét và phản hồi.',
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.4),
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                          height: 1.4),
                     ),
                     const SizedBox(height: 20),
                     DropdownButtonFormField<String>(
                       value: _selectedRole,
                       decoration: InputDecoration(
                         labelText: 'Vai trò muốn đăng ký',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         prefixIcon: const Icon(Icons.badge_outlined),
                       ),
                       items: _upgradeRoleLabels.entries
                           .map(
-                            (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                            (e) => DropdownMenuItem(
+                                value: e.key, child: Text(e.value)),
                           )
                           .toList(),
                       onChanged: _submitting
@@ -177,12 +187,16 @@ class _UpgradeAccountPageState extends State<UpgradeAccountPage> {
                       maxLines: 4,
                       decoration: InputDecoration(
                         labelText: 'Mô tả / lý do',
-                        hintText: 'Giới thiệu ngắn về doanh nghiệp hoặc nhu cầu sử dụng hệ thống...',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        hintText:
+                            'Giới thiệu ngắn về doanh nghiệp hoặc nhu cầu sử dụng hệ thống...',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         alignLabelWithHint: true,
                       ),
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Vui lòng nhập mô tả';
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Vui lòng nhập mô tả';
+                        }
                         return null;
                       },
                       enabled: !_submitting,
@@ -193,25 +207,31 @@ class _UpgradeAccountPageState extends State<UpgradeAccountPage> {
                       child: ElevatedButton(
                         onPressed: _submitting ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
                         child: _submitting
                             ? const SizedBox(
                                 width: 22,
                                 height: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
                               )
-                            : const Text('Gửi đơn', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            : const Text('Gửi đơn',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(height: 32),
                     Row(
                       children: [
-                        Icon(Icons.history, size: 22, color: theme.colorScheme.primary),
+                        Icon(Icons.history,
+                            size: 22, color: theme.colorScheme.primary),
                         const SizedBox(width: 8),
                         Text(
                           'Đơn đã gửi',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -222,7 +242,8 @@ class _UpgradeAccountPageState extends State<UpgradeAccountPage> {
                         child: Center(child: CircularProgressIndicator()),
                       )
                     else if (_error != null)
-                      Text(_error!, style: const TextStyle(color: Colors.redAccent))
+                      Text(_error!,
+                          style: const TextStyle(color: Colors.redAccent))
                     else if (_requests.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -233,12 +254,14 @@ class _UpgradeAccountPageState extends State<UpgradeAccountPage> {
                       )
                     else
                       ..._requests.map((r) {
-                        final roleLabel = _upgradeRoleLabels[r.requestedRole] ?? r.requestedRole;
+                        final roleLabel = _upgradeRoleLabels[r.requestedRole] ??
+                            r.requestedRole;
                         return Card(
                           margin: const EdgeInsets.only(bottom: 10),
                           elevation: 0,
                           color: Colors.grey.shade50,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           child: Padding(
                             padding: const EdgeInsets.all(14),
                             child: Column(
@@ -249,13 +272,17 @@ class _UpgradeAccountPageState extends State<UpgradeAccountPage> {
                                     Expanded(
                                       child: Text(
                                         roleLabel,
-                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15),
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: _statusColor(r.status).withOpacity(0.15),
+                                        color: _statusColor(r.status)
+                                            .withOpacity(0.15),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -269,15 +296,21 @@ class _UpgradeAccountPageState extends State<UpgradeAccountPage> {
                                     ),
                                   ],
                                 ),
-                                if (r.description != null && r.description!.isNotEmpty) ...[
+                                if (r.description != null &&
+                                    r.description!.isNotEmpty) ...[
                                   const SizedBox(height: 8),
-                                  Text(r.description!, style: TextStyle(fontSize: 13, color: Colors.grey.shade800)),
+                                  Text(r.description!,
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey.shade800)),
                                 ],
                                 if (r.createdAt != null) ...[
                                   const SizedBox(height: 8),
                                   Text(
                                     'Gửi lúc: ${r.createdAt}',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600),
                                   ),
                                 ],
                               ],

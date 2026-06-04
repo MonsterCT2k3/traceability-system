@@ -4,6 +4,8 @@ import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
 import vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse;
 import vn.edu.kma.blockchain_service.dto.response.BatchRecordResponse;
 import vn.edu.kma.blockchain_service.dto.response.TransformedBatchRecordResponse;
+import vn.edu.kma.blockchain_service.dto.request.VerifyTransformedDirectRequest;
+import vn.edu.kma.blockchain_service.dto.response.VerifyTransformedDirectResponse;
 
 import java.util.List;
 
@@ -29,6 +31,7 @@ public interface TraceabilityService {
      * Xác thực danh sách các mã Hash so với Blockchain.
      */
     VerifyHashesResponse verifyHashes(VerifyHashesRequest request) throws Exception;
+    VerifyTransformedDirectResponse verifyTransformedDirect(VerifyTransformedDirectRequest request) throws Exception;
 
     // Đọc thông tin lô gốc
     BatchRecordResponse getBatchRecord(String batchIdHex) throws Exception;

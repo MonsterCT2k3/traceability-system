@@ -45,6 +45,9 @@ public class ProductUnitServiceImpl implements ProductUnitService {
     private final TradeLogisticsClient tradeLogisticsClient;
     private final BlockchainClient blockchainClient;
     private final IdentityClient identityClient;
+    private final vn.edu.kma.traceability_core_service.service.PalletService palletService;
+    private final ProductUnitClaimRepository productUnitClaimRepository;
+    private final vn.edu.kma.traceability_core_service.service.ClaimTokenService claimTokenService;
 
     @Value("${spring.url.blockchain-service}")
     private String blockchainBaseUrl;
@@ -116,9 +119,18 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 // markAsUsed sẽ không lỗi nếu serial không tồn tại trong bảng (trường hợp serial tự sinh)
                 banknoteSerialRepository.markAsUsed(unitSerial, saved);
 
+                String claimToken = claimTokenService.generate();
+                productUnitClaimRepository.save(ProductUnitClaim.builder()
+                        .productUnit(saved)
+                        .claimTokenHash(claimTokenService.hash(claimToken))
+                        .status("AVAILABLE")
+                        .build());
+
                 items.add(ProductUnitGeneratedItem.builder()
                         .unitId(saved.getId())
                         .unitSerial(saved.getUnitSerial())
+                        .traceQrPayload(saved.getId())
+                        .claimToken(claimToken)
                         .build());
             }
 
@@ -270,6 +282,9 @@ public class ProductUnitServiceImpl implements ProductUnitService {
                 .scanCount(scanDisplay)
                 .historyEvents(historyEvents)
                 .isDataIntact(isDataIntact)
+                .directTrace(verify
+                        ? palletService.verifyDirectTrace(pallet.getId())
+                        : palletService.getDirectTrace(pallet.getId()))
                 .build();
     }
 

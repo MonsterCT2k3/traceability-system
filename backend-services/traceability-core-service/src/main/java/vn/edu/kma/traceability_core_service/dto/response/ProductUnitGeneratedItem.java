@@ -13,5 +13,7 @@ import lombok.NoArgsConstructor;
 public class ProductUnitGeneratedItem {
     private String unitId;
     private String unitSerial;
+    private String traceQrPayload;
+    private String claimToken;
 }
 

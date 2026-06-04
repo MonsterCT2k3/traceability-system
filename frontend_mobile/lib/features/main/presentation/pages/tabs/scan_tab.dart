@@ -73,9 +73,8 @@ class _ScanTabState extends State<ScanTab> {
         context,
         MaterialPageRoute(
           builder: (context) => BlocProvider<TraceBloc>(
-            create: (context) => sl<TraceBloc>()
-              ..add(InitializeTraceWithData(model))
-              ..add(VerifyTraceBlockchain(model.unitSerial)),
+            create: (context) =>
+                sl<TraceBloc>()..add(InitializeTraceWithData(model)),
             child: TraceResultPage(initialTrace: model),
           ),
         ),

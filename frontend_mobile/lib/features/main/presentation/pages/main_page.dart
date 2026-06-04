@@ -7,6 +7,7 @@ import '../../../auth/presentation/bloc/auth_state.dart';
 import 'tabs/history_tab.dart';
 import 'tabs/profile_tab.dart';
 import 'tabs/scan_tab.dart';
+import '../../../review/presentation/pages/purchased_products_tab.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -31,15 +32,29 @@ class _MainPageState extends State<MainPage> {
       },
       builder: (context, authState) {
         final isAuthenticated = authState is AuthAuthenticated;
-        final tabs = isAuthenticated
-            ? const [ScanTab(), HistoryTab(), ProfileTab()]
-            : const [ScanTab(), ProfileTab()];
-        final destinations = isAuthenticated
+        final isUser = authState is AuthAuthenticated &&
+            authState.user.role.trim().toUpperCase() == 'USER';
+        final tabs = isUser
+            ? const [
+                ScanTab(),
+                PurchasedProductsTab(),
+                HistoryTab(),
+                ProfileTab()
+              ]
+            : isAuthenticated
+                ? const [ScanTab(), HistoryTab(), ProfileTab()]
+                : const [ScanTab(), ProfileTab()];
+        final destinations = isUser
             ? const [
                 TraceBottomNavigationItem(
                   icon: Icons.qr_code_scanner_outlined,
                   selectedIcon: Icons.qr_code_scanner_rounded,
-                  label: 'Quét QR',
+                  label: 'Truy xuất',
+                ),
+                TraceBottomNavigationItem(
+                  icon: Icons.shopping_bag_outlined,
+                  selectedIcon: Icons.shopping_bag_rounded,
+                  label: 'Đã mua',
                 ),
                 TraceBottomNavigationItem(
                   icon: Icons.history_outlined,
@@ -52,18 +67,36 @@ class _MainPageState extends State<MainPage> {
                   label: 'Cá nhân',
                 ),
               ]
-            : const [
-                TraceBottomNavigationItem(
-                  icon: Icons.qr_code_scanner_outlined,
-                  selectedIcon: Icons.qr_code_scanner_rounded,
-                  label: 'Quét QR',
-                ),
-                TraceBottomNavigationItem(
-                  icon: Icons.person_outline_rounded,
-                  selectedIcon: Icons.person_rounded,
-                  label: 'Cá nhân',
-                ),
-              ];
+            : isAuthenticated
+                ? const [
+                    TraceBottomNavigationItem(
+                      icon: Icons.qr_code_scanner_outlined,
+                      selectedIcon: Icons.qr_code_scanner_rounded,
+                      label: 'Quét QR',
+                    ),
+                    TraceBottomNavigationItem(
+                      icon: Icons.history_outlined,
+                      selectedIcon: Icons.history_rounded,
+                      label: 'Lịch sử',
+                    ),
+                    TraceBottomNavigationItem(
+                      icon: Icons.person_outline_rounded,
+                      selectedIcon: Icons.person_rounded,
+                      label: 'Cá nhân',
+                    ),
+                  ]
+                : const [
+                    TraceBottomNavigationItem(
+                      icon: Icons.qr_code_scanner_outlined,
+                      selectedIcon: Icons.qr_code_scanner_rounded,
+                      label: 'Quét QR',
+                    ),
+                    TraceBottomNavigationItem(
+                      icon: Icons.person_outline_rounded,
+                      selectedIcon: Icons.person_rounded,
+                      label: 'Cá nhân',
+                    ),
+                  ];
 
         final validIndex =
             _currentIndex < tabs.length ? _currentIndex : tabs.length - 1;

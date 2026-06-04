@@ -7,6 +7,8 @@ import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
 import vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse;
 import vn.edu.kma.blockchain_service.dto.response.BatchRecordResponse;
 import vn.edu.kma.blockchain_service.dto.response.TransformedBatchRecordResponse;
+import vn.edu.kma.blockchain_service.dto.request.VerifyTransformedDirectRequest;
+import vn.edu.kma.blockchain_service.dto.response.VerifyTransformedDirectResponse;
 import vn.edu.kma.blockchain_service.service.TraceabilityService;
 import vn.edu.kma.common.dto.response.ApiResponse; // Dùng lại ApiResponse của common-library
 
@@ -119,6 +121,24 @@ public class TraceabilityController {
                     .build());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(ApiResponse.<VerifyHashesResponse>builder()
+                    .code(500)
+                    .message("Lỗi xác thực: " + e.getMessage())
+                    .build());
+        }
+    }
+
+    @PostMapping("/verify-transformed-direct")
+    public ResponseEntity<ApiResponse<VerifyTransformedDirectResponse>> verifyTransformedDirect(
+            @RequestBody VerifyTransformedDirectRequest request) {
+        try {
+            VerifyTransformedDirectResponse response = traceabilityService.verifyTransformedDirect(request);
+            return ResponseEntity.ok(ApiResponse.<VerifyTransformedDirectResponse>builder()
+                    .code(200)
+                    .message("Xác thực lô chế biến và quan hệ đầu vào hoàn tất")
+                    .result(response)
+                    .build());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.<VerifyTransformedDirectResponse>builder()
                     .code(500)
                     .message("Lỗi xác thực: " + e.getMessage())
                     .build());

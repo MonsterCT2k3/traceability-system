@@ -12,5 +12,6 @@ public interface ProductService {
      */
     Product createProduct(ProductRequest request, MultipartFile image, String token);
     List<Product> getAllProducts();
+    List<Product> getMyProducts(String token);
     Product getProductById(String id);
 }

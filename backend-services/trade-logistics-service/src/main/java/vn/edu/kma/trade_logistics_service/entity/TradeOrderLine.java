@@ -26,6 +26,10 @@ public class TradeOrderLine {
     @Column(length = 36)
     private String targetRawBatchId;
 
+    /** MANUFACTURER_TO_MANUFACTURER: pallet cụ thể được mua làm input sản xuất. */
+    @Column(length = 36)
+    private String targetPalletId;
+
     /** Số lượng đặt (chuỗi, khớp RawBatch.quantity). */
     @Column(length = 64)
     private String quantityRequested;

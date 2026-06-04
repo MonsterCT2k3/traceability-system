@@ -12,14 +12,15 @@ class TraceBloc extends Bloc<TraceEvent, TraceState> {
     required this.getTraceBySerial,
     required this.verifyTraceOnChain,
   }) : super(TraceInitial()) {
-    
     on<InitializeTraceWithData>((event, emit) {
       emit(TraceLoaded(trace: event.trace));
+      add(VerifyTraceBlockchain(event.trace.unitSerial));
     });
 
     on<GetTraceDetails>((event, emit) async {
       emit(TraceLoading());
-      final result = await getTraceBySerial.callWithHistory(event.serial, isHistory: event.isHistory);
+      final result = await getTraceBySerial.callWithHistory(event.serial,
+          isHistory: event.isHistory);
       result.fold(
         (failure) => emit(TraceError(failure.message)),
         (trace) {
@@ -32,11 +33,11 @@ class TraceBloc extends Bloc<TraceEvent, TraceState> {
     on<VerifyTraceBlockchain>((event, emit) async {
       if (state is! TraceLoaded) return;
       final currentState = state as TraceLoaded;
-      
+
       emit(currentState.copyWith(isVerifying: true));
-      
+
       final result = await verifyTraceOnChain(event.serial);
-      
+
       result.fold(
         (failure) => emit(currentState.copyWith(
           isVerifying: false,
