@@ -32,6 +32,7 @@ public class TransferServiceImpl implements TransferService {
     public TransferRecord initiateTransfer(TransferInitRequest request, String token) {
         try {
             String currentUserId = extractUserIdFromToken(token);
+            String currentUserRole = extractRoleFromToken(token);
             String targetType = normalizeTargetType(request.getTargetType());
             String targetId = requireNonBlank(request.getTargetId(), "Thiếu targetId");
             String newOwnerId = requireNonBlank(request.getNewOwnerId(), "Thiếu newOwnerId");
@@ -49,6 +50,7 @@ public class TransferServiceImpl implements TransferService {
                     .targetType(targetType)
                     .targetId(targetId)
                     .fromUserId(currentUserId)
+                    .fromUserRole(currentUserRole)
                     .toUserId(newOwnerId);
 
             if ("PALLET".equals(targetType)) {
@@ -133,6 +135,12 @@ public class TransferServiceImpl implements TransferService {
                     .batchIdHex(batchIdHex.trim())
                     .fromUserId(transfer.getFromUserId())
                     .toUserId(transfer.getToUserId())
+                    .requestId("transfer:" + transfer.getId() + ":ownership")
+                    .operation("OWNERSHIP_CHANGE")
+                    .billingActorId(transfer.getFromUserId())
+                    .billingRole(resolveBillingRole(transfer))
+                    .initiatedByUserId(transfer.getToUserId())
+                    .sourceService("trade-logistics-service")
                     .build();
             kafkaTemplate.send("blockchain.requests.ownership", event);
 
@@ -167,5 +175,21 @@ public class TransferServiceImpl implements TransferService {
         }
         SignedJWT signedJWT = SignedJWT.parse(token);
         return signedJWT.getJWTClaimsSet().getStringClaim("userId");
+    }
+
+    private static String resolveBillingRole(TransferRecord transfer) {
+        if (transfer.getFromUserRole() != null && !transfer.getFromUserRole().isBlank()) {
+            return transfer.getFromUserRole();
+        }
+        return "RAW_BATCH".equals(transfer.getTargetType()) ? "SUPPLIER" : "MANUFACTURER";
+    }
+
+    private static String extractRoleFromToken(String tokenHeader) throws Exception {
+        String token = tokenHeader;
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        return signedJWT.getJWTClaimsSet().getStringClaim("role");
     }
 }

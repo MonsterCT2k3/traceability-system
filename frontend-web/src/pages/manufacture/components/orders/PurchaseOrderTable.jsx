@@ -1,10 +1,21 @@
 import React from 'react';
-import { Table, Button, Space, Popconfirm, Typography } from 'antd';
+import { Button, Popconfirm, Space, Table, Tag, Typography } from 'antd';
 import { EyeOutlined, StopOutlined } from '@ant-design/icons';
 import OrderStatusTag from './OrderStatusTag';
-import { ORDER_TYPE, ORDER_STATUS } from '../../constants/tradeOrderConstants';
+import { ORDER_STATUS, ORDER_TYPE } from '../../constants/tradeOrderConstants';
 
 const { Text } = Typography;
+
+const ORDER_TYPE_META = {
+  [ORDER_TYPE.MANUFACTURER_TO_SUPPLIER]: {
+    color: 'green',
+    label: 'Từ nhà cung cấp',
+  },
+  [ORDER_TYPE.MANUFACTURER_TO_MANUFACTURER]: {
+    color: 'blue',
+    label: 'Từ nhà sản xuất',
+  },
+};
 
 const PurchaseOrderTable = ({
   orders,
@@ -19,10 +30,20 @@ const PurchaseOrderTable = ({
       title: 'Mã đơn',
       dataIndex: 'orderCode',
       key: 'orderCode',
-      render: (t) => <Text strong>{t}</Text>,
+      render: (value) => <Text strong>{value}</Text>,
     },
     {
-      title: 'NCC (seller)',
+      title: 'Nguồn mua',
+      dataIndex: 'orderType',
+      key: 'orderType',
+      width: 170,
+      render: (value) => {
+        const meta = ORDER_TYPE_META[value] || { color: 'default', label: value };
+        return <Tag color={meta.color}>{meta.label}</Tag>;
+      },
+    },
+    {
+      title: 'Người bán',
       dataIndex: 'sellerId',
       key: 'sellerId',
       ellipsis: true,
@@ -31,26 +52,27 @@ const PurchaseOrderTable = ({
     {
       title: 'Số dòng',
       key: 'lines',
-      width: 88,
-      render: (_, r) => r.lines?.length ?? 0,
+      width: 96,
+      render: (_, record) => record.lines?.length ?? 0,
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      render: (s) => <OrderStatusTag status={s} />,
+      width: 150,
+      render: (status) => <OrderStatusTag status={status} />,
     },
     {
       title: 'Tạo lúc',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 168,
-      render: (d) => (d ? new Date(d).toLocaleString('vi-VN') : '—'),
+      width: 180,
+      render: (value) => (value ? new Date(value).toLocaleString('vi-VN') : '-'),
     },
     {
       title: '',
       key: 'actions',
-      width: 200,
+      width: 210,
       render: (_, record) => (
         <Space size="small">
           <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => onViewDetail(record)}>
@@ -59,7 +81,7 @@ const PurchaseOrderTable = ({
           {record.status === ORDER_STATUS.PENDING && (
             <Popconfirm
               title="Hủy đơn này?"
-              description="Chỉ hủy được khi đơn còn chờ NCC xử lý."
+              description="Chỉ hủy được khi đơn còn ở trạng thái chờ xử lý."
               okText="Hủy đơn"
               cancelText="Không"
               onConfirm={() => onCancel(record.id)}
@@ -74,7 +96,7 @@ const PurchaseOrderTable = ({
     },
   ];
 
-  const data = (orders || []).filter((o) => orderTypes.includes(o.orderType));
+  const data = (orders || []).filter((order) => orderTypes.includes(order.orderType));
 
   return (
     <Table
@@ -83,6 +105,7 @@ const PurchaseOrderTable = ({
       columns={columns}
       dataSource={data}
       pagination={{ pageSize: 8, showSizeChanger: true, pageSizeOptions: ['8', '16', '32'] }}
+      scroll={{ x: 980 }}
     />
   );
 };

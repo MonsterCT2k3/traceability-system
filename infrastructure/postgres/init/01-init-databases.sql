@@ -3,3 +3,4 @@
 CREATE DATABASE product_db;
 CREATE DATABASE traceability_catalog;
 CREATE DATABASE traceability_trade_logistics;
+CREATE DATABASE traceability_blockchain;

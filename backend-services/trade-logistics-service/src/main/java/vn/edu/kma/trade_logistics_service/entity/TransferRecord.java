@@ -46,6 +46,9 @@ public class TransferRecord {
     @Column(nullable = false)
     private String fromUserId;     // Người gửi (Chủ hiện tại)
 
+    @Column(name = "from_user_role", length = 30)
+    private String fromUserRole;
+
     @Column(nullable = false)
     private String toUserId;       // Người nhận
 

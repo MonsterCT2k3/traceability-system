@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Typography, Tabs, message, Alert } from 'antd';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button, Card, Drawer, Space, Typography, message } from 'antd';
+import { PlusOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../../../lib/api';
-import PurchaseOrderTable from './PurchaseOrderTable';
-import CreatePurchaseOrderForm from './CreatePurchaseOrderForm';
-import CreateManufacturerOrderForm from './CreateManufacturerOrderForm';
-import OrderDetailDrawer from './OrderDetailDrawer';
 import { ORDER_TYPE } from '../../constants/tradeOrderConstants';
+import CreateMaterialOrderForm from './CreateMaterialOrderForm';
+import OrderDetailDrawer from './OrderDetailDrawer';
+import PurchaseOrderTable from './PurchaseOrderTable';
 
 const { Title, Paragraph } = Typography;
 
@@ -19,8 +19,8 @@ const fetchBuyerOrders = async () => {
 
 const ManufactureOrderManagement = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('list');
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
@@ -39,8 +39,8 @@ const ManufactureOrderManagement = () => {
     onSuccess: () => {
       message.success('Đã tạo đơn đặt hàng');
       queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
-      setCreateFormKey((k) => k + 1);
-      setActiveTab('list');
+      setCreateFormKey((key) => key + 1);
+      setCreateOpen(false);
     },
     onError: (err) => {
       message.error(err.response?.data?.message || err.message || 'Không tạo được đơn');
@@ -56,7 +56,7 @@ const ManufactureOrderManagement = () => {
     onSuccess: () => {
       message.success('Đã hủy đơn');
       queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
-      setDrawerOpen(false);
+      setDetailOpen(false);
       setSelectedOrder(null);
     },
     onError: (err) => {
@@ -66,7 +66,7 @@ const ManufactureOrderManagement = () => {
   });
 
   const openDetail = async (order) => {
-    setDrawerOpen(true);
+    setDetailOpen(true);
     setDetailLoading(true);
     setSelectedOrder(null);
     try {
@@ -80,71 +80,63 @@ const ManufactureOrderManagement = () => {
     }
   };
 
-  const tabItems = [
-    {
-      key: 'list',
-      label: 'Đơn đặt nguyên liệu',
-      children: (
-        <>
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-            message="Đơn từ nhà sản xuất tới nhà cung cấp"
-            description="Sau khi gửi, NCC sẽ chấp nhận / từ chối. Bạn có thể hủy khi đơn còn ở trạng thái chờ xử lý."
-          />
-          <PurchaseOrderTable
-            orders={orders}
-            orderTypes={[ORDER_TYPE.MANUFACTURER_TO_SUPPLIER, ORDER_TYPE.MANUFACTURER_TO_MANUFACTURER]}
-            loading={isLoading}
-            onViewDetail={openDetail}
-            onCancel={(id) => cancelMutation.mutate(id)}
-            cancellingId={cancellingId}
-          />
-        </>
-      ),
-    },
-    {
-      key: 'create',
-      label: 'Tạo đơn mua từ NCC',
-      children: (
-        <CreatePurchaseOrderForm
+  return (
+    <div>
+      <Card
+        bordered={false}
+        style={{
+          marginBottom: 18,
+          background: 'linear-gradient(135deg, #f8fbff 0%, #eef7f2 100%)',
+          border: '1px solid #e6f0ec',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div>
+            <Space align="center" style={{ marginBottom: 8 }}>
+              <ShoppingCartOutlined style={{ fontSize: 24, color: '#1677ff' }} />
+              <Title level={3} style={{ margin: 0 }}>Đặt hàng nguyên liệu</Title>
+            </Space>
+            <Paragraph type="secondary" style={{ margin: 0, maxWidth: 780 }}>
+              Tạo một đơn đặt hàng duy nhất, sau đó chọn nguồn mua là nhà cung cấp hoặc nhà sản xuất trong form.
+            </Paragraph>
+          </div>
+          <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+            Tạo đơn mới
+          </Button>
+        </div>
+      </Card>
+
+      <Card bordered={false} title="Danh sách đơn đặt hàng">
+        <PurchaseOrderTable
+          orders={orders}
+          orderTypes={[ORDER_TYPE.MANUFACTURER_TO_SUPPLIER, ORDER_TYPE.MANUFACTURER_TO_MANUFACTURER]}
+          loading={isLoading}
+          onViewDetail={openDetail}
+          onCancel={(id) => cancelMutation.mutate(id)}
+          cancellingId={cancellingId}
+        />
+      </Card>
+
+      <Drawer
+        title="Tạo đơn đặt hàng"
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        width={760}
+        destroyOnHidden
+      >
+        <CreateMaterialOrderForm
           key={createFormKey}
           submitting={createMutation.isPending}
           onSubmit={(payload) => createMutation.mutate(payload)}
         />
-      ),
-    },
-    {
-      key: 'create-m2m',
-      label: 'Tạo đơn mua pallet từ NSX',
-      children: (
-        <CreateManufacturerOrderForm
-          key={`m2m-${createFormKey}`}
-          submitting={createMutation.isPending}
-          onSubmit={(payload) => createMutation.mutate(payload)}
-        />
-      ),
-    },
-  ];
-
-  return (
-    <div>
-      <Title level={4} style={{ marginTop: 0 }}>
-        Đặt hàng nguyên liệu (NCC)
-      </Title>
-      <Paragraph type="secondary">
-        Quản lý đơn mua nguyên liệu từ nhà cung cấp — loại đơn <strong>MANUFACTURER_TO_SUPPLIER</strong>.
-      </Paragraph>
-
-      <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+      </Drawer>
 
       <OrderDetailDrawer
-        open={drawerOpen}
+        open={detailOpen}
         loading={detailLoading}
         order={selectedOrder}
         onClose={() => {
-          setDrawerOpen(false);
+          setDetailOpen(false);
           setSelectedOrder(null);
         }}
       />

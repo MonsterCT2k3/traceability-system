@@ -58,6 +58,7 @@ public class RawBatchServiceImpl implements RawBatchService {
     public Map<String, String> createRawBatch(RawBatchCreateRequest request, String token) {
         try {
             String producerId = extractUserIdFromToken(token);
+            String producerRole = extractRoleFromToken(token);
 
             String rawBatchCode = "RAW-" + generateShortCode();
             String batchIdHex = randomBytes32Hex();
@@ -101,6 +102,12 @@ public class RawBatchServiceImpl implements RawBatchService {
                     .entityType("RAW_BATCH")
                     .batchIdHex(batchIdHex)
                     .dataHashHex(dataHashHex)
+                    .requestId("raw-batch:" + saved.getId() + ":record")
+                    .operation("RECORD_BATCH")
+                    .billingActorId(producerId)
+                    .billingRole(producerRole)
+                    .initiatedByUserId(producerId)
+                    .sourceService("traceability-core-service")
                     .build();
             kafkaTemplate.send("blockchain.requests.batch", event);
 
@@ -121,6 +128,7 @@ public class RawBatchServiceImpl implements RawBatchService {
     public Map<String, String> mergeRawBatches(RawBatchMergeRequest request, String token) {
         try {
             String ownerId = extractUserIdFromToken(token);
+            String ownerRole = extractRoleFromToken(token);
             if (request == null || request.getSourceRawBatchIds() == null || request.getSourceRawBatchIds().size() < 2) {
                 throw new RuntimeException("Cần ít nhất 2 lô nguồn để gộp");
             }
@@ -231,6 +239,12 @@ public class RawBatchServiceImpl implements RawBatchService {
                         .entityType("RAW_BATCH")
                         .batchIdHex(batchIdHex)
                         .dataHashHex(dataHashHex)
+                        .requestId("raw-batch:" + mergedId + ":record")
+                        .operation("RECORD_BATCH")
+                        .billingActorId(ownerId)
+                        .billingRole(ownerRole)
+                        .initiatedByUserId(ownerId)
+                        .sourceService("traceability-core-service")
                         .build();
                 kafkaTemplate.send("blockchain.requests.batch", event);
 
@@ -404,6 +418,15 @@ public class RawBatchServiceImpl implements RawBatchService {
         }
         SignedJWT signedJWT = SignedJWT.parse(token);
         return signedJWT.getJWTClaimsSet().getStringClaim("userId");
+    }
+
+    private static String extractRoleFromToken(String tokenHeader) throws Exception {
+        String token = tokenHeader;
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        return signedJWT.getJWTClaimsSet().getStringClaim("role");
     }
 }
 

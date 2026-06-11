@@ -5,6 +5,7 @@ import {
   GoldOutlined,
   SwapOutlined,
   ShoppingCartOutlined,
+  ThunderboltOutlined,
   LogoutOutlined,
   UserOutlined,
   MenuFoldOutlined,
@@ -17,6 +18,7 @@ import { clearAuthSession } from '../../lib/authSession';
 import SupplierOverview from './components/SupplierOverview';
 import SupplierRawBatchManagement from './components/SupplierRawBatchManagement';
 import SupplierOrderManagement from './components/orders/SupplierOrderManagement';
+import GasUsageDashboard from '../../components/gas/GasUsageDashboard';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -81,6 +83,11 @@ const SupplierDashboard = () => {
       icon: <ShoppingCartOutlined />,
       label: 'Đơn đặt hàng',
     },
+    {
+      key: 'gas-usage',
+      icon: <ThunderboltOutlined />,
+      label: 'Phi blockchain',
+    },
   ];
 
   const renderContent = () => {
@@ -91,6 +98,8 @@ const SupplierDashboard = () => {
         return <SupplierRawBatchManagement />;
       case 'orders':
         return <SupplierOrderManagement />;
+      case 'gas-usage':
+        return <GasUsageDashboard accent="#16a34a" />;
       default:
         return <SupplierOverview />;
     }

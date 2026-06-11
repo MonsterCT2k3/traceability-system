@@ -1,6 +1,7 @@
 package vn.edu.kma.blockchain_service.service;
 
 import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
+import vn.edu.kma.blockchain_service.dto.BlockchainExecutionResult;
 import vn.edu.kma.blockchain_service.dto.response.VerifyHashesResponse;
 import vn.edu.kma.blockchain_service.dto.response.BatchRecordResponse;
 import vn.edu.kma.blockchain_service.dto.response.TransformedBatchRecordResponse;
@@ -17,15 +18,15 @@ public interface TraceabilityService {
     String deployContract() throws Exception;
 
     /** Ghi lô gốc (RAW) — chỉ ví system. */
-    String recordBatch(String batchIdHex, String dataHashHex) throws Exception;
+    BlockchainExecutionResult recordBatch(String batchIdHex, String dataHashHex) throws Exception;
 
     /** Ghi lô chế biến / Pallet — chỉ ví system. */
-    String recordTransformedBatch(String batchIdHex, String dataHashHex, List<String> parentHashesHex) throws Exception;
+    BlockchainExecutionResult recordTransformedBatch(String batchIdHex, String dataHashHex, List<String> parentHashesHex) throws Exception;
 
     /**
      * Ghi audit chuyển quyền (userId) lên chain — emit OwnershipChanged, trả về txHash.
      */
-    String logOwnershipChange(String batchIdHex, String fromUserId, String toUserId) throws Exception;
+    BlockchainExecutionResult logOwnershipChange(String batchIdHex, String fromUserId, String toUserId) throws Exception;
     
     /**
      * Xác thực danh sách các mã Hash so với Blockchain.

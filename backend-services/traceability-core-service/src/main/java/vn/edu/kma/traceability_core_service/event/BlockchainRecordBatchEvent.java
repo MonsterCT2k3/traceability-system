@@ -12,9 +12,15 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BlockchainRecordBatchEvent implements Serializable {
+    private String requestId;
+    private String operation;
     private String entityId;
     private String entityType; // "RAW_BATCH", "PRODUCT", vv.
     private String batchIdHex;
     private String dataHashHex;
+    private String billingActorId;
+    private String billingRole;
+    private String initiatedByUserId;
+    private String sourceService;
 }
 

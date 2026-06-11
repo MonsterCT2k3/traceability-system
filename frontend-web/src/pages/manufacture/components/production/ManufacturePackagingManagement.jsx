@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Card, Col, Divider, Form, Input, InputNumber, Row, Select, Space, Typography, message } from 'antd';
+import { Alert, Button, Card, Col, Divider, Form, Input, InputNumber, Row, Select, Space, Statistic, Typography, message } from 'antd';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import JSZip from 'jszip';
@@ -224,7 +224,7 @@ const ManufacturePackagingManagement = () => {
   const [packingForm] = Form.useForm();
   const [packingResult, setPackingResult] = useState(null);
 
-  const { data: summary } = useQuery({
+  const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['banknoteSerialSummary'],
     queryFn: async () => {
       const res = await api.get('/product/api/v1/banknote-serials/summary');
@@ -293,6 +293,14 @@ const ManufacturePackagingManagement = () => {
         Chọn lô sản xuất, nhập số thùng và số hộp mỗi thùng. Hệ thống tự cấp seri từ kho seri khả dụng của bạn.
       </Text>
       <Divider />
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24} md={8}>
+          <Card loading={summaryLoading}>
+            <Statistic title="Seri khả dụng để đóng gói" value={availableUnits} />
+          </Card>
+        </Col>
+      </Row>
       
       <Form
         form={packingForm}
@@ -338,7 +346,20 @@ const ManufacturePackagingManagement = () => {
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <Form.Item name="unitLabel" label="Nhãn đơn vị (tuỳ chọn)">
-              <Input placeholder="VD: chai / hộp / gói" />
+              <Select
+                allowClear
+                placeholder="Chọn nhãn đơn vị"
+                options={[
+                  { value: 'chai', label: 'Chai' },
+                  { value: 'hop', label: 'Hộp' },
+                  { value: 'goi', label: 'Gói' },
+                  { value: 'tui', label: 'Túi' },
+                  { value: 'lon', label: 'Lon' },
+                  { value: 'lo', label: 'Lọ' },
+                  { value: 'khay', label: 'Khay' },
+                  { value: 'cai', label: 'Cái' },
+                ]}
+              />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>

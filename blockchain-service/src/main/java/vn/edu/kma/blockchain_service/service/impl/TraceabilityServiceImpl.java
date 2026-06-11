@@ -9,11 +9,14 @@ import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Hash;
 import org.web3j.utils.Numeric;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.exceptions.TransactionException;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.RawTransactionManager;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.StaticGasProvider;
 import vn.edu.kma.blockchain_service.contract.Traceability;
+import vn.edu.kma.blockchain_service.domain.GasUsageStatus;
+import vn.edu.kma.blockchain_service.dto.BlockchainExecutionResult;
 import vn.edu.kma.blockchain_service.dto.request.VerifyHashesRequest;
 import vn.edu.kma.blockchain_service.dto.response.BatchRecordResponse;
 import vn.edu.kma.blockchain_service.dto.response.TransformedBatchRecordResponse;
@@ -23,6 +26,7 @@ import vn.edu.kma.blockchain_service.dto.response.VerifyTransformedDirectRespons
 import vn.edu.kma.blockchain_service.service.TraceabilityService;
 
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -87,7 +91,7 @@ public class TraceabilityServiceImpl implements TraceabilityService {
 
     @Override
     public String deployContract() throws Exception {
-        return submitTransaction("deployContract", () -> {
+        synchronized (transactionLock) {
             Traceability contract = Traceability.deploy(
                     web3j,
                     transactionManager,
@@ -96,24 +100,24 @@ public class TraceabilityServiceImpl implements TraceabilityService {
             ).send();
             log.info("Contract deployed, contractAddress={}", contract.getContractAddress());
             return contract.getContractAddress();
-        });
+        }
     }
 
     @Override
-    public String recordBatch(String batchIdHex, String dataHashHex) throws Exception {
+    public BlockchainExecutionResult recordBatch(String batchIdHex, String dataHashHex) throws Exception {
         log.info("recordBatch: batchId={}, dataHash={}", batchIdHex, dataHashHex);
         byte[] batchIdBytes = hexToBytes32(batchIdHex, "batchIdHex");
         byte[] dataHashBytes = hexToBytes32(dataHashHex, "dataHashHex");
 
         return submitTransaction("recordBatch", () -> {
             TransactionReceipt receipt = recordBatchContract.recordBatch(batchIdBytes, dataHashBytes).send();
-            log.info("recordBatch OK, txHash={}", receipt.getTransactionHash());
-            return receipt.getTransactionHash();
+            log.info("recordBatch done, txHash={}, status={}", receipt.getTransactionHash(), receipt.getStatus());
+            return receipt;
         });
     }
 
     @Override
-    public String recordTransformedBatch(String batchIdHex, String dataHashHex, List<String> parentHashesHex) throws Exception {
+    public BlockchainExecutionResult recordTransformedBatch(String batchIdHex, String dataHashHex, List<String> parentHashesHex) throws Exception {
         log.info("recordTransformedBatch: batchId={}, dataHash={}, parents={}", batchIdHex, dataHashHex, parentHashesHex);
         byte[] batchIdBytes = hexToBytes32(batchIdHex, "batchIdHex");
         byte[] dataHashBytes = hexToBytes32(dataHashHex, "dataHashHex");
@@ -125,13 +129,13 @@ public class TraceabilityServiceImpl implements TraceabilityService {
 
         return submitTransaction("recordTransformedBatch", () -> {
             TransactionReceipt receipt = recordTransformedBatchContract.recordTransformedBatch(batchIdBytes, dataHashBytes, parentBytes).send();
-            log.info("recordTransformedBatch OK, txHash={}", receipt.getTransactionHash());
-            return receipt.getTransactionHash();
+            log.info("recordTransformedBatch done, txHash={}, status={}", receipt.getTransactionHash(), receipt.getStatus());
+            return receipt;
         });
     }
 
     @Override
-    public String logOwnershipChange(String batchIdHex, String fromUserId, String toUserId) throws Exception {
+    public BlockchainExecutionResult logOwnershipChange(String batchIdHex, String fromUserId, String toUserId) throws Exception {
         log.info("logOwnershipChange: batchId={}, from={}, to={}", batchIdHex, fromUserId, toUserId);
         byte[] batchIdBytes = hexToBytes32(batchIdHex, "batchIdHex");
         requireNonBlank(fromUserId, "fromUserId");
@@ -139,8 +143,8 @@ public class TraceabilityServiceImpl implements TraceabilityService {
 
         return submitTransaction("logOwnershipChange", () -> {
             TransactionReceipt receipt = ownershipChangeContract.logOwnershipChange(batchIdBytes, fromUserId, toUserId).send();
-            log.info("logOwnershipChange OK, txHash={}", receipt.getTransactionHash());
-            return receipt.getTransactionHash();
+            log.info("logOwnershipChange done, txHash={}, status={}", receipt.getTransactionHash(), receipt.getStatus());
+            return receipt;
         });
     }
 
@@ -233,10 +237,73 @@ public class TraceabilityServiceImpl implements TraceabilityService {
         return readContract.hasTransformedBatch(hexToBytes32(batchIdHex, "batchIdHex")).send();
     }
 
-    private String submitTransaction(String operation, BlockchainTransaction transaction) throws Exception {
+    private BlockchainExecutionResult submitTransaction(String operation, BlockchainTransaction transaction) throws Exception {
         synchronized (transactionLock) {
             log.debug("Submitting serialized blockchain transaction: {}", operation);
-            return transaction.send();
+            Instant submittedAt = Instant.now();
+            try {
+                TransactionReceipt receipt = transaction.send();
+                return toExecutionResult(receipt, submittedAt, null);
+            } catch (TransactionException e) {
+                TransactionReceipt receipt = e.getTransactionReceipt().orElse(null);
+                if (receipt != null) {
+                    log.warn("{} failed on-chain, txHash={}, status={}", operation, receipt.getTransactionHash(), receipt.getStatus());
+                    return toExecutionResult(receipt, submittedAt, e);
+                }
+                String txHash = e.getTransactionHash().orElse(null);
+                return BlockchainExecutionResult.builder()
+                        .status(txHash == null ? GasUsageStatus.SUBMISSION_FAILED : GasUsageStatus.RECEIPT_UNKNOWN)
+                        .txHash(txHash)
+                        .submittedAt(submittedAt)
+                        .errorCode(e.getClass().getSimpleName())
+                        .errorMessage(e.getMessage())
+                        .build();
+            } catch (Exception e) {
+                return BlockchainExecutionResult.builder()
+                        .status(GasUsageStatus.SUBMISSION_FAILED)
+                        .submittedAt(submittedAt)
+                        .errorCode(e.getClass().getSimpleName())
+                        .errorMessage(e.getMessage())
+                        .build();
+            }
+        }
+    }
+
+    private BlockchainExecutionResult toExecutionResult(
+            TransactionReceipt receipt,
+            Instant submittedAt,
+            Exception error) throws Exception {
+        BigInteger effectiveGasPrice = resolveEffectiveGasPrice(receipt.getTransactionHash());
+        BigInteger gasUsed = receipt.getGasUsed();
+        BigInteger feeWei = gasUsed == null || effectiveGasPrice == null ? null : gasUsed.multiply(effectiveGasPrice);
+        boolean ok = receipt.isStatusOK();
+        return BlockchainExecutionResult.builder()
+                .txHash(receipt.getTransactionHash())
+                .status(ok ? GasUsageStatus.SUCCESS : GasUsageStatus.FAILED_ON_CHAIN)
+                .gasUsed(gasUsed)
+                .effectiveGasPriceWei(effectiveGasPrice)
+                .feeWei(feeWei)
+                .blockNumber(receipt.getBlockNumber())
+                .submittedAt(submittedAt)
+                .minedAt(Instant.now())
+                .errorCode(ok || error == null ? null : error.getClass().getSimpleName())
+                .errorMessage(ok || error == null ? null : error.getMessage())
+                .build();
+    }
+
+    private BigInteger resolveEffectiveGasPrice(String txHash) {
+        if (txHash == null || txHash.isBlank()) {
+            return gasPrice;
+        }
+        try {
+            return web3j.ethGetTransactionByHash(txHash)
+                    .send()
+                    .getTransaction()
+                    .map(tx -> tx.getGasPrice())
+                    .orElse(gasPrice);
+        } catch (Exception e) {
+            log.warn("Cannot resolve gas price for txHash={}, fallback configured gasPrice={}", txHash, gasPrice);
+            return gasPrice;
         }
     }
 
@@ -299,6 +366,6 @@ public class TraceabilityServiceImpl implements TraceabilityService {
 
     @FunctionalInterface
     private interface BlockchainTransaction {
-        String send() throws Exception;
+        TransactionReceipt send() throws Exception;
     }
 }

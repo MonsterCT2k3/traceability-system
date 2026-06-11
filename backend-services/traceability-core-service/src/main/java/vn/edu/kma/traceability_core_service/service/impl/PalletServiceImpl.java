@@ -60,6 +60,7 @@ public class PalletServiceImpl implements PalletService {
     public Map<String, String> anchorPallet(String productId, PalletAnchorRequest request, String tokenHeader) {
         try {
             String processorId = extractUserIdFromToken(tokenHeader);
+            String processorRole = extractRoleFromToken(tokenHeader);
             ApiResponse<Map<String, Object>> pRes = catalogClient.getProductById(productId);
             if (pRes == null || pRes.getResult() == null) {
                 throw new RuntimeException("Product not found: " + productId);
@@ -139,6 +140,12 @@ public class PalletServiceImpl implements PalletService {
                     .batchIdHex(chainBatchIdHex)
                     .dataHashHex(dataHashHex)
                     .parentHashesHex(parents)
+                    .requestId("pallet:" + saved.getId() + ":anchor")
+                    .operation("RECORD_TRANSFORMED_BATCH")
+                    .billingActorId(processorId)
+                    .billingRole(processorRole)
+                    .initiatedByUserId(processorId)
+                    .sourceService("traceability-core-service")
                     .build();
             kafkaTemplate.send("blockchain.requests.transformed", event);
 
@@ -367,6 +374,15 @@ public class PalletServiceImpl implements PalletService {
         }
         SignedJWT signedJWT = SignedJWT.parse(token);
         return signedJWT.getJWTClaimsSet().getStringClaim("userId");
+    }
+
+    private static String extractRoleFromToken(String tokenHeader) throws Exception {
+        String token = tokenHeader;
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        return signedJWT.getJWTClaimsSet().getStringClaim("role");
     }
 
     private static String generateShortCode() {

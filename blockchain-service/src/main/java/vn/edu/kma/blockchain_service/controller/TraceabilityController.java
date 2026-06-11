@@ -46,7 +46,7 @@ public class TraceabilityController {
         try {
             String batchIdHex = body.get("batchIdHex");
             String dataHashHex = body.get("dataHashHex");
-            String txHash = traceabilityService.recordBatch(batchIdHex, dataHashHex);
+            String txHash = traceabilityService.recordBatch(batchIdHex, dataHashHex).getTxHash();
             return ResponseEntity.ok(ApiResponse.<String>builder()
                     .code(200)
                     .message("Đã ghi lô gốc lên blockchain")
@@ -70,7 +70,7 @@ public class TraceabilityController {
             if (parentHashesHex == null) {
                 parentHashesHex = Collections.emptyList();
             }
-            String txHash = traceabilityService.recordTransformedBatch(batchIdHex, dataHashHex, parentHashesHex);
+            String txHash = traceabilityService.recordTransformedBatch(batchIdHex, dataHashHex, parentHashesHex).getTxHash();
             return ResponseEntity.ok(ApiResponse.<String>builder()
                     .code(200)
                     .message("Đã ghi pallet/lô chế biến lên blockchain")
@@ -93,7 +93,7 @@ public class TraceabilityController {
             String batchIdHex = body.get("batchIdHex");
             String fromUserId = body.get("fromUserId");
             String toUserId = body.get("toUserId");
-            String txHash = traceabilityService.logOwnershipChange(batchIdHex, fromUserId, toUserId);
+            String txHash = traceabilityService.logOwnershipChange(batchIdHex, fromUserId, toUserId).getTxHash();
             return ResponseEntity.ok(ApiResponse.<String>builder()
                     .code(200)
                     .message("Đã ghi audit chuyển quyền lên blockchain")

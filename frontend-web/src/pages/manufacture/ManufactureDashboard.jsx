@@ -10,6 +10,7 @@ import {
   ShopOutlined,
   BuildOutlined,
   DatabaseOutlined,
+  ThunderboltOutlined,
   LogoutOutlined,
   UserOutlined,
   MenuFoldOutlined,
@@ -27,6 +28,7 @@ import ProductManagement from './components/products/ProductManagement';
 import ManufactureProductionManagement from './components/production/ManufactureProductionManagement';
 import ManufacturePackagingManagement from './components/production/ManufacturePackagingManagement';
 import GoodsManagement from './components/goods/GoodsManagement';
+import GasUsageDashboard from '../../components/gas/GasUsageDashboard';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -520,7 +522,7 @@ const ManufactureDashboard = () => {
     {
       key: 'orders',
       icon: <ShopOutlined />,
-      label: 'Đặt hàng NCC',
+      label: 'Đặt hàng nguyên liệu',
     },
     {
       key: 'retail-orders',
@@ -546,6 +548,11 @@ const ManufactureDashboard = () => {
       key: 'goods',
       icon: <DatabaseOutlined />,
       label: 'Quản lý hàng hóa',
+    },
+    {
+      key: 'gas-usage',
+      icon: <ThunderboltOutlined />,
+      label: 'Phi blockchain',
     }
   ];
 
@@ -560,6 +567,7 @@ const ManufactureDashboard = () => {
       case 'production': return <ManufactureProductionManagement />;
       case 'packaging': return <ManufacturePackagingManagement />;
       case 'goods': return <GoodsManagement />;
+      case 'gas-usage': return <GasUsageDashboard accent="#1677ff" />;
       default: return <Overview />;
     }
   };
@@ -595,7 +603,7 @@ const ManufactureDashboard = () => {
         }
       `}</style>
       <Layout style={{ height: '100vh', overflow: 'hidden' }}>
-      <Sider trigger={null} collapsible collapsed={collapsed} theme="light">
+      <Sider trigger={null} collapsible collapsed={collapsed} theme="light" width={220}>
         <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #f0f0f0' }}>
           <Title level={4} style={{ margin: 0, color: '#1677ff', transition: 'all 0.3s' }}>
             {collapsed ? 'TS' : 'Traceability'}

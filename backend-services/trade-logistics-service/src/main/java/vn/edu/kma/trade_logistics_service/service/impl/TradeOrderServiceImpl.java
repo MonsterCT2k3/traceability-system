@@ -400,7 +400,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             }
             
             String batchIdHex = productClient.transferOwnership("RAW_BATCH", batchId, buyerId).getResult();
-            String tx = callOwnershipChange(batchIdHex, sellerId, buyerId);
+            String tx = callOwnershipChange(order, line, batchIdHex, sellerId, buyerId, sellerRoleFor(order), order.getCarrierId());
             if (tx != null && !tx.isBlank()) {
                 lastTx = tx;
             } else {
@@ -476,7 +476,8 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 throw new RuntimeException("Pallet không còn thuộc người bán: " + palletId);
             }
             String batchIdHex = productClient.transferOwnership("PALLET", palletId, order.getBuyerId()).getResult();
-            lastTx = callOwnershipChange(batchIdHex, order.getSellerId(), order.getBuyerId());
+            lastTx = callOwnershipChange(order, line, batchIdHex, order.getSellerId(), order.getBuyerId(),
+                    sellerRoleFor(order), order.getCarrierId());
         }
         order.setDeliveryTxHash(lastTx);
         order.setDeliveryChainStatus(lastTx == null ? "PARTIAL_OR_FAILED" : "OK");
@@ -510,7 +511,9 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         }
     }
 
-    private String callOwnershipChange(String batchIdHex, String fromUserId, String toUserId) {
+    private String callOwnershipChange(TradeOrder order, TradeOrderLine line, String batchIdHex,
+                                       String fromUserId, String toUserId, String billingRole,
+                                       String initiatedByUserId) {
         if (batchIdHex == null || batchIdHex.isBlank()) {
             return null;
         }
@@ -519,11 +522,17 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             // We'll return "PENDING" and the background listener will update it.
             vn.edu.kma.trade_logistics_service.event.BlockchainOwnershipChangeEvent event = 
                 vn.edu.kma.trade_logistics_service.event.BlockchainOwnershipChangeEvent.builder()
-                    .entityId("TRADE_" + System.currentTimeMillis()) // Using a placeholder or we can pass trade_order_id if we want
+                    .entityId(order.getId())
                     .entityType("TRADE_ORDER")
                     .batchIdHex(batchIdHex.trim())
                     .fromUserId(fromUserId)
                     .toUserId(toUserId)
+                    .requestId("trade-order:" + order.getId() + ":line:" + line.getId() + ":ownership")
+                    .operation("OWNERSHIP_CHANGE")
+                    .billingActorId(fromUserId)
+                    .billingRole(billingRole)
+                    .initiatedByUserId(initiatedByUserId == null || initiatedByUserId.isBlank() ? fromUserId : initiatedByUserId)
+                    .sourceService("trade-logistics-service")
                     .build();
             kafkaTemplate.send("blockchain.requests.ownership", event);
             return "PENDING";
@@ -531,6 +540,13 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             log.warn("Lỗi gọi ownership-change: {}", e.getMessage());
             return null;
         }
+    }
+
+    private String sellerRoleFor(TradeOrder order) {
+        if (order.getOrderType() == OrderType.MANUFACTURER_TO_SUPPLIER) {
+            return UserRole.SUPPLIER.name();
+        }
+        return UserRole.MANUFACTURER.name();
     }
 
     private void validateAndBuildLinesM2S(List<TradeOrderLineRequest> lines, String sellerId) {
@@ -615,6 +631,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                         .lineIndex(l.getLineIndex())
                         .targetRawBatchId(l.getTargetRawBatchId())
                         .targetPalletId(l.getTargetPalletId())
+                        .targetPalletName(resolvePalletName(l.getTargetPalletId()))
                         .quantityRequested(l.getQuantityRequested())
                         .unit(l.getUnit())
                         .productId(l.getProductId())
@@ -638,6 +655,29 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 .updatedAt(o.getUpdatedAt())
                 .lines(lines)
                 .build();
+    }
+
+    private String resolvePalletName(String palletId) {
+        if (palletId == null || palletId.isBlank()) {
+            return null;
+        }
+        try {
+            Map<String, Object> pallet = productClient.getPallet(palletId).getResult();
+            if (pallet == null) {
+                return null;
+            }
+            Object palletName = pallet.get("palletName");
+            if (palletName != null && !palletName.toString().isBlank()) {
+                return palletName.toString();
+            }
+            Object palletCode = pallet.get("palletCode");
+            if (palletCode != null && !palletCode.toString().isBlank()) {
+                return palletCode.toString();
+            }
+        } catch (Exception e) {
+            log.warn("Cannot resolve pallet name for {}", palletId, e);
+        }
+        return null;
     }
 
     private static String requireNonBlank(String value, String message) {

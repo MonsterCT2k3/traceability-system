@@ -211,6 +211,9 @@ class _TransporterOrdersViewState extends State<TransporterOrdersView> {
       try {
         if (line.targetRawBatchId != null) {
           name = await resolveBatch(line.targetRawBatchId!);
+        } else if (line.targetPalletId != null) {
+          final palletName = line.targetPalletName?.trim() ?? '';
+          name = palletName.isNotEmpty ? palletName : line.targetPalletId!;
         } else if (line.productId != null) {
           name = await resolveProduct(line.productId!);
         }

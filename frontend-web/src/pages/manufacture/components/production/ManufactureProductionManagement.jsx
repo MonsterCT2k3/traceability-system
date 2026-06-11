@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
-import { Button, Card, Col, DatePicker, Divider, Form, Input, InputNumber, Row, Select, Space, Statistic, Typography, message } from 'antd';
+import { useMemo } from 'react';
+import { Button, Card, Col, DatePicker, Divider, Form, Input, InputNumber, Row, Select, Space, Typography, message } from 'antd';
 import dayjs from 'dayjs';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from '../../../../lib/api';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const makeBatchNo = () => {
   const d = dayjs();
@@ -13,14 +13,6 @@ const makeBatchNo = () => {
 
 const ManufactureProductionManagement = () => {
   const [form] = Form.useForm();
-
-  const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['banknoteSerialSummary'],
-    queryFn: async () => {
-      const res = await api.get('/product/api/v1/banknote-serials/summary');
-      return res.data?.result ?? { totalSerials: 0, mySerials: 0, usedSerials: 0, availableSerials: 0 };
-    },
-  });
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ['manufacturerProducts'],
@@ -125,18 +117,9 @@ const ManufactureProductionManagement = () => {
   return (
     <div>
       <Title level={4} style={{ marginBottom: 4 }}>Sản xuất</Title>
-      <Text type="secondary">Xem số lượng seri hiện có và tạo lô sản xuất.</Text>
       <Divider />
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} md={8}>
-          <Card loading={summaryLoading}>
-            <Statistic title="Seri khả dụng để đóng gói" value={summary?.availableSerials ?? summary?.mySerials ?? 0} />
-          </Card>
-        </Col>
-      </Row>
-
-      <Card style={{ marginTop: 16 }}>
+      <Card>
         <Form
           form={form}
           layout="vertical"

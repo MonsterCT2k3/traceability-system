@@ -52,6 +52,7 @@ class TradeOrderLineDto {
   final int? lineIndex;
   final String? targetRawBatchId;
   final String? targetPalletId;
+  final String? targetPalletName;
   final String? productId;
   final String? quantityRequested;
   final String? quantityCartons;
@@ -61,6 +62,7 @@ class TradeOrderLineDto {
     this.lineIndex,
     this.targetRawBatchId,
     this.targetPalletId,
+    this.targetPalletName,
     this.productId,
     this.quantityRequested,
     this.quantityCartons,
@@ -74,6 +76,7 @@ class TradeOrderLineDto {
           : int.tryParse('${json['lineIndex']}'),
       targetRawBatchId: json['targetRawBatchId']?.toString(),
       targetPalletId: json['targetPalletId']?.toString(),
+      targetPalletName: json['targetPalletName']?.toString(),
       productId: json['productId']?.toString(),
       quantityRequested: json['quantityRequested']?.toString(),
       quantityCartons: json['quantityCartons']?.toString(),

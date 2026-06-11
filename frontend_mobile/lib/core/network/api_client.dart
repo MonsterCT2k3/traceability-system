@@ -7,7 +7,7 @@ class ApiClient {
 
   ApiClient({required this.dio, required this.secureStorage}) {
     dio.options.baseUrl =
-        'https://e40c-2405-4802-4dd-3480-950-1896-a463-74c7.ngrok-free.app';
+        'https://8188-2405-4802-1f91-4000-18a1-35a1-5896-b81.ngrok-free.app';
     dio.options.connectTimeout = const Duration(seconds: 10);
     dio.options.sendTimeout = const Duration(seconds: 60);
     dio.options.receiveTimeout = const Duration(seconds: 60);
